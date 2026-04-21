@@ -1,0 +1,11 @@
+services:
+  auditoria:
+    build: .
+    container_name: auditoria-dashboard
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./db:/app/data
+    environment:
+      - DB_PATH=/app/data/auditoria.db
+    restart: unless-stopped
