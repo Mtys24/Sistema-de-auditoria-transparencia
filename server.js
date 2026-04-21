@@ -189,6 +189,56 @@ app.put('/api/items/:id', (req, res) => {
   res.json({ ...updated, areas });
 });
 
+// POST /api/items/:id/areas — add an area to an item
+app.post('/api/items/:id/areas', (req, res) => {
+  const { area } = req.body;
+  const item = db.prepare('SELECT * FROM items WHERE id = ?').get(req.params.id);
+  if (!item) return res.status(404).json({ error: 'Item not found' });
+  if (!area) return res.status(400).json({ error: 'Area name required' });
+
+  // Get or create area
+  let areaRow = db.prepare('SELECT id FROM areas WHERE name = ?').get(area);
+  if (!areaRow) {
+    db.prepare('INSERT INTO areas (name) VALUES (?)').run(area);
+    areaRow = db.prepare('SELECT id FROM areas WHERE name = ?').get(area);
+  }
+
+  // Check if already linked
+  const existing = db.prepare('SELECT 1 FROM item_areas WHERE item_id = ? AND area_id = ?').get(item.id, areaRow.id);
+  if (existing) return res.status(409).json({ error: 'Area already assigned' });
+
+  db.prepare('INSERT INTO item_areas (item_id, area_id) VALUES (?, ?)').run(item.id, areaRow.id);
+  db.prepare('UPDATE items SET updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(item.id);
+
+  const areas = db.prepare(`
+    SELECT a.name FROM areas a
+    JOIN item_areas ia ON a.id = ia.area_id
+    WHERE ia.item_id = ?
+  `).all(item.id).map(a => a.name);
+
+  res.json({ ...item, areas });
+});
+
+// DELETE /api/items/:id/areas/:areaName — remove an area from an item
+app.delete('/api/items/:id/areas/:areaName', (req, res) => {
+  const item = db.prepare('SELECT * FROM items WHERE id = ?').get(req.params.id);
+  if (!item) return res.status(404).json({ error: 'Item not found' });
+
+  const areaRow = db.prepare('SELECT id FROM areas WHERE name = ?').get(req.params.areaName);
+  if (!areaRow) return res.status(404).json({ error: 'Area not found' });
+
+  db.prepare('DELETE FROM item_areas WHERE item_id = ? AND area_id = ?').run(item.id, areaRow.id);
+  db.prepare('UPDATE items SET updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(item.id);
+
+  const areas = db.prepare(`
+    SELECT a.name FROM areas a
+    JOIN item_areas ia ON a.id = ia.area_id
+    WHERE ia.item_id = ?
+  `).all(item.id).map(a => a.name);
+
+  res.json({ ...item, areas });
+});
+
 // ─── START SERVER ─────────────────────────────────────────────
 
 app.listen(PORT, () => {
