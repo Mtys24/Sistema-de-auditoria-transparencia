@@ -1,0 +1,57 @@
+# Manual de Usuario: Sistema de Auditoría de Transparencia
+
+Bienvenido al manual del **Sistema de Auditoría de Transparencia Activa Municipal (Revisión 2026)**. Esta herramienta está diseñada para facilitar el seguimiento, control y actualización de los ítems de transparencia exigidos por el Consejo para la Transparencia.
+
+---
+
+## 1. Tablero Principal y Métricas
+Al ingresar, el sistema ofrece una visión panorámica del estado de la auditoría.
+
+![Tablero Principal](file:///C:/Users/Server/.gemini/antigravity/brain/3fffc584-9210-4fca-92f9-c50c6ad35c3a/hero_view_1776790524782.png)
+
+*   **Indicadores Rápidos**: En la parte superior verás el conteo total de ítems y su desglose por estado: **Completado (Ok)**, **Incompleto (Warn)** y **No Disponible (Bad)**.
+*   **Barra de Cumplimiento**: Una representación visual del progreso global de la auditoría.
+*   **Gestión de Plazos**: El panel de "Plazos de cumplimiento" destaca las fechas límite próximas o vencidas para facilitar la priorización.
+
+---
+
+## 2. Sistema de Filtros y Búsqueda
+Para localizar tareas específicas, utiliza la barra de búsqueda o los filtros dinámicos.
+
+![Filtros y Búsqueda](file:///C:/Users/Server/.gemini/antigravity/brain/3fffc584-9210-4fca-92f9-c50c6ad35c3a/filters_view_1776790539040.png)
+
+*   **Búsqueda**: Filtra por nombre de ítem o sección.
+*   **Estado**: Selecciona solo ítems completados, incompletos o no disponibles.
+*   **Sección/Área**: Restringe la vista a una normativa específica o a un departamento (Municipal, Educación, Salud).
+
+---
+
+## 3. Gestión de la Tarea (Vista Expandida)
+Al hacer clic en cualquier ítem, se despliega el panel de control detallado.
+
+![Vista de Ítem Expandido](file:///C:/Users/Server/.gemini/antigravity/brain/3fffc584-9210-4fca-92f9-c50c6ad35c3a/expanded_item_12_full_1776790578082.png)
+
+### 3.1 Actualización de Estado
+Puedes cambiar el estado del ítem en tiempo real seleccionando una de las tres opciones. Al hacerlo, el sistema guarda automáticamente los cambios en la base de datos y actualiza las métricas globales.
+
+### 3.2 Asignación Dinámica de Departamentos
+Esta es una nueva funcionalidad que permite asignar o quitar responsabilidades de forma instantánea.
+
+![Gestión de Departamentos](file:///C:/Users/Server/.gemini/antigravity/brain/3fffc584-9210-4fca-92f9-c50c6ad35c3a/dept_management_detail_1776790594006.png)
+
+*   **Quitar Departamento**: Haz clic en la **"×"** roja de un departamento asignado (ej. Educación) para eliminarlo de la tarea.
+*   **Agregar Departamento**: Haz clic en el botón con el signo **"+"** verde de los departamentos disponibles (ej. Salud) para asignarlo.
+*   **Flexibilidad Total**: Un ítem puede quedar con múltiples departamentos, con uno solo o con ninguno si se considera que ya no corresponde a un área específica.
+
+---
+
+## 4. Exportación de Datos
+Utiliza el botón **"Copiar Resumen"** en la parte superior derecha para obtener un reporte en texto plano de todos los ítems pendientes. Este resumen se copia a tu portapapeles listo para ser enviado por correo o sistemas de mensajería.
+
+---
+
+> [!TIP]
+> El sistema se actualiza automáticamente cada vez que realizas un cambio. No es necesario recargar la página para ver las nuevas estadísticas de cumplimiento.
+
+> [!NOTE]
+> La conexión a la base de datos se indica mediante un punto verde en la esquina superior derecha ("SQLite conectado").
