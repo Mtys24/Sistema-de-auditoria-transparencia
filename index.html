@@ -293,7 +293,7 @@ async function loadData() {
     const [items, cats, subs] = await Promise.all([
       fetch('/api/items').then(r => r.json()),
       fetch('/api/categories').then(r => r.json()),
-      fetch('/api/subcategories').then(r => r.json())
+      fetch('/api/categories/subcategories/all').then(r => r.json())
     ]);
     ALL_ITEMS = items || [];
     ALL_CATS = cats || [];
