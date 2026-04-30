@@ -1,0 +1,1375 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin · Auditoría</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ok:#00c896;--ok-bg:#00c89615;--warn:#f5a623;--warn-bg:#f5a62315;
+    --bad:#ff4d4d;--bad-bg:#ff4d4d15;--bg:#0c0e14;--surface:#13161f;
+    --surface2:#1a1e2b;--border:#ffffff10;--border2:#ffffff20;
+    --text:#eef0f8;--muted:#6e7491;--accent:#5b7fff;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;display:flex;min-height:100vh;}
+
+  /* SIDEBAR */
+  .sidebar{width:220px;background:var(--surface);border-right:1px solid var(--border2);display:flex;flex-direction:column;flex-shrink:0;}
+  .sidebar-brand{padding:24px 20px 20px;border-bottom:1px solid var(--border);}
+  .sidebar-brand h1{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;}
+  .sidebar-brand h1 span{color:var(--accent);}
+  .sidebar-brand p{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-top:4px;}
+  .sidebar-user{padding:12px 20px;border-bottom:1px solid var(--border);font-size:11px;color:var(--muted);}
+  .sidebar-user b{color:var(--text);display:block;margin-bottom:2px;}
+  nav{flex:1;padding:12px 0;}
+  .nav-section{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;padding:12px 20px 4px;}
+  .nav-item{display:flex;align-items:center;gap:8px;padding:9px 20px;font-size:12px;color:var(--muted);cursor:pointer;transition:all .15s;border-left:2px solid transparent;}
+  .nav-item:hover{color:var(--text);background:var(--surface2);}
+  .nav-item.active{color:var(--accent);border-left-color:var(--accent);background:#5b7fff08;}
+  .sidebar-foot{padding:16px 20px;border-top:1px solid var(--border);}
+  .btn-logout{width:100%;background:transparent;border:1px solid var(--border2);border-radius:6px;padding:8px;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);cursor:pointer;transition:all .2s;}
+  .btn-logout:hover{border-color:var(--bad);color:var(--bad);}
+
+  /* MAIN */
+  .main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+  .topbar{padding:16px 28px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+  .topbar h2{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;}
+  .content{flex:1;overflow-y:auto;padding:24px 28px;}
+
+  /* BUTTONS */
+  .btn{background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:8px 14px;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);cursor:pointer;text-transform:uppercase;letter-spacing:.06em;transition:all .2s;}
+  .btn:hover{border-color:var(--border2);color:var(--text);background:var(--surface2);}
+  .btn-primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .btn-primary:hover{opacity:.85;color:#fff;}
+  .btn-danger{border-color:var(--bad);color:var(--bad);}
+  .btn-danger:hover{background:var(--bad-bg);}
+  .btn-sm{padding:5px 10px;font-size:10px;}
+
+  /* TABLE */
+  .tbl{width:100%;border-collapse:collapse;font-size:12px;}
+  .tbl th{text-align:left;padding:10px 12px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid var(--border2);}
+  .tbl td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle;}
+  .tbl tr:hover td{background:var(--surface2);}
+
+  /* STATUS TAGS */
+  .tag{font-size:10px;padding:2px 8px;border-radius:4px;text-transform:uppercase;letter-spacing:.05em;}
+  .tag-ok{background:var(--ok-bg);color:var(--ok);border:1px solid #00c89630;}
+  .tag-warn{background:var(--warn-bg);color:var(--warn);border:1px solid #f5a62330;}
+  .tag-bad{background:var(--bad-bg);color:var(--bad);border:1px solid #ff4d4d30;}
+
+  /* MODAL */
+  .modal-overlay{position:fixed;inset:0;background:#00000080;z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;}
+  .modal-overlay.hidden{display:none;}
+  .modal{background:var(--surface);border:1px solid var(--border2);border-radius:12px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;}
+  .modal-head{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+  .modal-head h3{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;}
+  .modal-body{padding:24px;}
+  .modal-foot{padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;}
+  .close-btn{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1;}
+  .close-btn:hover{color:var(--text);}
+
+  /* FORM */
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;}
+  .field input,.field select,.field textarea{width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:7px;padding:9px 12px;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;outline:none;transition:border-color .2s;}
+  .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);}
+  .field textarea{resize:vertical;min-height:80px;}
+  .field select option{background:var(--surface2);}
+
+  /* AREAS CHIPS */
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
+  .chip{background:var(--surface);border:1px solid var(--border2);border-radius:4px;padding:3px 8px;font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px;}
+  .chip button{background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;line-height:1;padding:0;}
+  .chip button:hover{color:var(--bad);}
+
+  /* SEARCH */
+  .search-bar{display:flex;gap:10px;margin-bottom:16px;}
+  .search-bar input{flex:1;background:var(--surface);border:1px solid var(--border2);border-radius:7px;padding:9px 12px;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;outline:none;}
+  .search-bar input:focus{border-color:var(--accent);}
+
+  .empty{text-align:center;padding:48px;color:var(--muted);font-size:12px;}
+  .badge{font-size:10px;background:var(--surface2);border:1px solid var(--border2);border-radius:3px;padding:1px 6px;color:var(--muted);}
+  .pill-area{font-size:10px;background:var(--surface2);border:1px solid var(--border2);border-radius:3px;padding:1px 6px;color:var(--muted);margin-right:3px;}
+
+  .active-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;}
+  .active-dot.on{background:var(--ok);}
+  .active-dot.off{background:var(--bad);}
+
+  /* HIERARCHICAL ITEMS VIEW */
+  .items-topbar{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+  .items-topbar input{flex:1;min-width:180px;background:var(--surface);border:1px solid var(--border2);border-radius:7px;padding:8px 12px;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;outline:none;}
+  .items-topbar input:focus{border-color:var(--accent);}
+  .fbtn{background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:5px 11px;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);cursor:pointer;text-transform:uppercase;letter-spacing:.06em;transition:all .15s;}
+  .fbtn:hover{color:var(--text);}
+  .fbtn.active-all{background:var(--surface);border-color:var(--accent);color:var(--text);}
+  .fbtn.active-ok{background:var(--ok-bg);border-color:#00c89650;color:var(--ok);}
+  .fbtn.active-warn{background:var(--warn-bg);border-color:#f5a62350;color:var(--warn);}
+  .fbtn.active-bad{background:var(--bad-bg);border-color:#ff4d4d50;color:var(--bad);}
+
+  .cat-section{margin-bottom:40px;}
+  .cat-header{display:flex;align-items:center;gap:12px;padding-bottom:12px;border-bottom:1px solid var(--border2);margin-bottom:20px;}
+  .cat-num{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:var(--accent);min-width:30px;}
+  .cat-name{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;flex:1;color:var(--text);letter-spacing:0.02em;}
+  .cat-badge{font-family:'DM Mono',monospace; font-size:10px; color:var(--muted); opacity:0.6;}
+  .cat-badge.done{background:var(--ok-bg);color:var(--ok);border-color:#00c89640;}
+  .cat-badge.partial{background:var(--surface2);color:var(--muted);border-color:var(--border2);}
+  .sub-group{margin-bottom:8px;}
+  .sub-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;padding:4px 0 6px 10px;border-left:2px solid var(--border2);margin-bottom:6px;}
+
+  .item-card{border-radius:8px;background:var(--surface);border:1px solid var(--border);overflow:hidden;margin-bottom:7px;transition:border-color .2s;}
+  .item-card:hover{border-color:var(--border2);}
+  .item-header{display:flex;align-items:center;gap:10px;padding:13px 14px 13px 18px;cursor:pointer;position:relative;-webkit-user-select:none;user-select:none;}
+  .item-stripe{position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:8px 0 0 8px;}
+  .item-tag-lbl{font-size:10px;color:var(--muted);min-width:24px;}
+  .item-name-lbl{flex:1;font-size:12px;line-height:1.4;}
+  .item-hdr-right{display:flex;align-items:center;gap:8px;margin-left:8px;flex-shrink:0;}
+  .status-badge{font-size:10px;padding:2px 9px;border-radius:4px;text-transform:uppercase;letter-spacing:.05em;border:1px solid;}
+  .badge-ok{background:var(--ok-bg);color:var(--ok);border-color:#00c89630;}
+  .badge-warn{background:var(--warn-bg);color:var(--warn);border-color:#f5a62330;}
+  .badge-bad{background:var(--bad-bg);color:var(--bad);border-color:#ff4d4d30;}
+  .expand-icon{color:var(--muted);font-size:11px;transition:transform .25s;}
+  .expand-icon.open{transform:rotate(180deg);}
+  .item-body{padding:0 16px 16px 18px;display:none;}
+  .item-body.open{display:block;}
+  .item-detail-txt{font-size:12px;color:var(--muted);padding:12px 0 14px;line-height:1.7;border-bottom:1px solid var(--border);margin-bottom:14px;white-space:pre-wrap;}
+  .sec-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:8px;display:flex;align-items:center;gap:5px;}
+  .sec-lbl::before{content:'';display:inline-block;width:5px;height:5px;border:1px solid var(--muted);border-radius:1px;}
+  .area-pills{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;}
+  .area-pill-a{background:var(--surface2);border:1px solid var(--border2);border-radius:4px;padding:5px 12px;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);display:inline-block;margin-right:6px;margin-bottom:6px;cursor:pointer;transition:all .2s;}
+  .area-pill-a:hover{border-color:var(--accent);color:var(--text);}
+  .area-pill-a.on{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .area-pill-add-btn{background:transparent;border:1px dashed var(--border2);border-radius:4px;padding:3px 9px;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:4px;transition:all .15s;font-family:'DM Mono',monospace;}
+  .area-pill-add-btn:hover{border-color:var(--ok);color:var(--ok);background:var(--ok-bg);}
+  .area-pill-add-btn::before{content:'+';}
+  .status-btns-row{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px;}
+  .sbtn{background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:6px 13px;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);cursor:pointer;letter-spacing:.05em;transition:all .2s;}
+  .sbtn:hover{color:var(--text);}
+  .sbtn-ok.on{border-color:var(--ok);color:var(--ok);background:var(--ok-bg);}
+  .sbtn-warn.on{border-color:var(--warn);color:var(--warn);background:var(--warn-bg);}
+  .sbtn-bad.on{border-color:var(--bad);color:var(--bad);background:var(--bad-bg);}
+  /* MASTER TREE PREMIUM */
+  .master-wrap{padding-top:10px;}
+  .tree-branch{margin-bottom:12px;position:relative;}
+  .tree-node{
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 12px 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    cursor: pointer;
+    position: relative;
+    z-index: 1;
+    margin-bottom: 8px;
+  }
+  .tree-node:hover{
+    border-color: var(--accent);
+    background: rgba(91, 127, 255, 0.08);
+    transform: translateX(8px);
+    box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.3);
+  }
+  .tree-node.cat{ 
+    border-left: 3px solid var(--accent); 
+    background: transparent;
+    padding: 10px 15px;
+    border-bottom: 1px solid var(--border2);
+    border-radius: 0;
+  }
+  .tree-node.cat .tree-title { font-size: 14px; font-weight: 700; }
+  .tree-node.cat .tree-code { font-size: 14px; background: transparent; color: var(--accent); padding: 0; margin-right: 8px; font-weight: 800; }
+  .tree-node.sub{ margin-left: 40px; border-left: 3px solid var(--muted); }
+  .tree-node.subsub{ margin-left: 80px; border-left: 2px solid var(--border2); }
+  .tree-node.item-node{
+    margin-left: 120px;
+    background: rgba(255, 255, 255, 0.01);
+    border-color: transparent;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    border-radius: 0;
+  }
+  .tree-node.item-node:hover{ background: rgba(255, 255, 255, 0.05); border-left: 2px solid var(--accent); border-radius: 8px; }
+
+  .tree-children{ margin-bottom: 20px; }
+  .tree-children::before{ left: 20px; background: linear-gradient(to bottom, var(--border2) 50%, transparent); }
+  
+  .tbtn{
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid transparent;
+    padding: 5px 10px;
+    border-radius: 8px;
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 600;
+    backdrop-filter: blur(5px);
+  }
+  .tbtn:hover{ color: #fff; background: var(--accent); transform: translateY(-1px); }
+  .tbtn.tdel:hover{ background: var(--bad); }
+
+  .tree-icon{width:20px;height:20px;color:var(--muted);flex-shrink:0;}
+  .tree-content{flex:1;display:flex;flex-direction:column;}
+  .tree-title{font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:var(--text);display:flex;align-items:center;gap:8px;}
+  .tree-code{font-family:'DM Mono',monospace;font-size:10px;background:var(--surface2);padding:2px 6px;border-radius:4px;color:var(--accent);}
+  .tree-meta{font-size:10px;color:var(--muted);margin-top:2px;text-transform:uppercase;letter-spacing:0.05em;}
+
+  .tree-actions{display:flex;gap:4px;opacity:0;transition:opacity .2s;margin-left:10px;}
+  .tree-node:hover .tree-actions{opacity:1;}
+
+  /* Scroller premium */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 10px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+.status-tag { padding:2px 8px; border-radius:4px; font-size:9px; text-transform:uppercase; font-weight:bold; }
+.status-tag.st-Completo { background: #10b981; color: #fff; }
+.status-tag.st-Incompleto { background: #f59e0b; color: #fff; }
+.status-tag.st-Faltante { background: #ef4444; color: #fff; }
+.status-tag.st-No-disponible { background: #6b7280; color: #fff; }
+
+.status-btn.s-na.active { background: #6b7280; border-color: #6b7280; color: #fff; }
+
+/* DASHBOARD ADMIN */
+.dashboard{display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:20px; margin-bottom:30px;}
+.dash-card{background:var(--surface); border:1px solid var(--border2); border-radius:16px; padding:25px; display:flex; flex-direction:column; gap:12px; position:relative; overflow:hidden; transition: transform 0.3s ease;}
+.dash-card:hover{transform: translateY(-5px);}
+.dash-card::before{content:''; position:absolute; left:0; top:0; bottom:0; width:5px; background:var(--accent);}
+.dash-card.ok::before{background:var(--ok);}
+.dash-card.warn::before{background:var(--warn);}
+.dash-card.bad::before{background:var(--bad);}
+.dash-label{font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.12em; font-weight:700;}
+.dash-value{font-family:'Syne', sans-serif; font-size:32px; font-weight:800; color:var(--text);}
+.dash-progress-bg{height:8px; background:rgba(255,255,255,0.05); border-radius:4px; overflow:hidden; margin-top:10px;}
+.dash-progress-bar{height:100%; background:var(--accent); transition:width 1s cubic-bezier(0.16, 1, 0.3, 1);}
+.dash-progress-bar.ok{background:var(--ok);}
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="sidebar-brand">
+    <h1>Auditoría<br><span>Admin</span></h1>
+    <p>Panel de gestión</p>
+  </div>
+  <div class="sidebar-user">
+    <b id="sb-user"></b>Administrador
+  </div>
+  <nav>
+    <div class="nav-section">Análisis</div>
+    <div class="nav-item active" data-page="dash" onclick="goPage('dash')">
+      ⊞ Dashboard
+    </div>
+    <div class="nav-section">Contenido</div>
+    <div class="nav-item" data-page="master" onclick="goPage('master')">
+      ⚙ Gestor Maestro
+    </div>
+    <div class="nav-item" data-page="categories" onclick="goPage('categories')">
+      ◈ Categorías
+    </div>
+    <div class="nav-item" data-page="subcategories" onclick="goPage('subcategories')">
+      ◉ Subcategorías
+    </div>
+    <div class="nav-item" data-page="items" onclick="goPage('items')">
+      ▦ Ítems
+    </div>
+    <div class="nav-item" data-page="areas" onclick="goPage('areas')">
+      ◎ Áreas
+    </div>
+    <div class="nav-section">Sistema</div>
+    <div class="nav-item" data-page="users" onclick="goPage('users')">
+      ◐ Usuarios
+    </div>
+    <div class="nav-item" data-page="config" onclick="goPage('config')">
+      ⛭ Configuración
+    </div>
+    <div class="nav-item" onclick="window.open('/','_blank')">
+      ↗ Vista pública
+    </div>
+  </nav>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <h2 id="page-title">Cargando...</h2>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <div id="topbar-actions"></div>
+      <button class="btn btn-sm btn-logout" style="background:rgba(239, 68, 68, 0.1); color:#ef4444; border:1px solid rgba(239, 68, 68, 0.2); font-weight:700;" onclick="logout()">Cerrar sesión</button>
+    </div>
+  </div>
+  <div class="content" id="content"></div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay hidden" id="modal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="modal-title">Nuevo ítem</h3>
+      <button class="close-btn" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" id="btn-save" onclick="save()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '/api';
+let TOKEN = localStorage.getItem('token');
+let ROLE = localStorage.getItem('role');
+let currentPage = 'dash';
+let editingId = null;
+let modalType = '';
+let categories = [], subcategories = [], areas = [], selectedAreas = [];
+
+if (!TOKEN || ROLE !== 'admin') { window.location.href = '/login.html'; }
+document.getElementById('sb-user').textContent = localStorage.getItem('username') || '';
+
+function h(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+async function api(method, path, body) {
+  const res = await fetch(API + path, {
+    method,
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  if (res.status === 401) { logout(); return; }
+  
+  const contentType = res.headers.get("content-type");
+  if (contentType && contentType.indexOf("application/json") !== -1) {
+    const data = await res.json();
+    if (data.error) { alert('Error: ' + data.error); return null; }
+    return data;
+  } else {
+    const text = await res.text();
+    console.error('Non-JSON response:', text);
+    alert('Error del servidor (Código ' + res.status + ')');
+    return null;
+  }
+}
+
+function logout() {
+  localStorage.clear();
+  window.location.href = '/login.html';
+}
+
+function goPage(page) {
+  currentPage = page;
+  document.querySelectorAll('.nav-item[data-page]').forEach(el => {
+    el.classList.toggle('active', el.dataset.page === page);
+  });
+  const titles = { dash:'Panel de Control', master:'Gestor Maestro', items:'Vista de ítems', categories:'Categorías', subcategories:'Subcategorías', areas:'Áreas', users:'Usuarios', config:'Configuración del Sistema' };
+  document.getElementById('page-title').textContent = titles[page] || page;
+  document.getElementById('topbar-actions').innerHTML = (page === 'items') ? '<button class="btn btn-primary" onclick="openItemModal(null)">+ Nuevo ítem</button>' : '';
+  render();
+}
+
+function saveGlobalSettings() {
+  const date = document.getElementById('global-deadline').value;
+  const cc = document.getElementById('global-cc').value.trim();
+  localStorage.setItem('globalCorrectionDeadline', date);
+  localStorage.setItem('globalDefaultCC', cc);
+  alert('Configuración global guardada');
+}
+
+function sendNotification(id, type) {
+  let target = null;
+  if (type === 'item') target = itemsMap[id];
+  else if (type === 'cat') target = catsMap[id];
+  else if (type === 'sub') target = subsMap[id];
+
+  if (!target) return;
+
+  const emails = target.responsible_emails || '';
+  const cc = localStorage.getItem('globalDefaultCC') || '';
+  const deadline = localStorage.getItem('globalCorrectionDeadline') || 'No definido';
+
+  if (!emails) {
+    alert('Esta ' + type + ' no tiene correos de responsables asignados.');
+    return;
+  }
+
+  const subject = `Recordatorio Subsanación: ${target.name}`;
+  const body = `Estimado responsable,\n\nSe recuerda que la fecha límite para subsanar observaciones en "${target.name}" es el ${deadline}.\n\nSaludos,\nSistema de Auditoría`;
+
+  console.log('--- ENVIANDO NOTIFICACIÓN ---');
+  console.log('PARA:', emails);
+  console.log('CC:', cc);
+  console.log('ASUNTO:', subject);
+  
+  const confirmMsg = `¿Enviar notificación por correo?\n\nPARA: ${emails}\nCC: ${cc}\n\nPLAZO: ${deadline}`;
+  if (confirm(confirmMsg)) {
+    alert('Notificación simulada enviada correctamente a: ' + emails);
+  }
+}
+
+// ── RENDER PAGES ──────────────────────────────────────────────
+
+async function render() {
+  if (currentPage === 'dash') await renderDash();
+  else if (currentPage === 'master') await renderMaster();
+  else if (currentPage === 'items') await renderItems();
+  else if (currentPage === 'categories') await renderCategories();
+  else if (currentPage === 'subcategories') await renderSubcategories();
+  else if (currentPage === 'areas') await renderAreas();
+  else if (currentPage === 'users') await renderUsers();
+  else if (currentPage === 'config') await renderConfig();
+}
+
+async function renderConfig() {
+  const container = document.getElementById('content');
+  container.innerHTML = `<div class="loading">Cargando configuración...</div>`;
+  const smtp = await api('GET', '/config/smtp') || {};
+
+  container.innerHTML = `
+    <div style="max-width:600px; padding:20px;">
+      <div class="card" style="background:var(--surface); border:1px solid var(--border2); border-radius:12px; padding:25px;">
+        <h3 style="margin-bottom:20px; font-family:'Syne', sans-serif; color:var(--text); display:flex; align-items:center; gap:10px;">
+          <span style="color:var(--accent);">⛭</span> Configuración SMTP (Google API / Gmail)
+        </h3>
+        <p style="font-size:12px; color:var(--muted); margin-bottom:25px; line-height:1.6;">
+          Para usar Gmail, utiliza el servidor <b>smtp.gmail.com</b>, puerto <b>465</b> (SSL) o <b>587</b> (TLS), 
+          y asegúrate de generar una <b>"Contraseña de Aplicación"</b> en tu cuenta de Google.
+        </p>
+        
+        <div class="field" style="margin-bottom:15px;">
+          <label style="display:block; font-size:11px; color:var(--muted); margin-bottom:6px; text-transform:uppercase;">Servidor SMTP</label>
+          <input type="text" id="smtp-host" style="width:100%;" value="${h(smtp.host || 'smtp.gmail.com')}">
+        </div>
+        
+        <div class="field" style="margin-bottom:15px;">
+          <label style="display:block; font-size:11px; color:var(--muted); margin-bottom:6px; text-transform:uppercase;">Puerto</label>
+          <input type="number" id="smtp-port" style="width:100%;" value="${h(smtp.port || 465)}">
+        </div>
+        
+        <div class="field" style="margin-bottom:15px;">
+          <label style="display:block; font-size:11px; color:var(--muted); margin-bottom:6px; text-transform:uppercase;">Usuario (Correo Google)</label>
+          <input type="text" id="smtp-user" style="width:100%;" value="${h(smtp.user || '')}" placeholder="ejemplo@gmail.com">
+        </div>
+        
+        <div class="field" style="margin-bottom:15px;">
+          <label style="display:block; font-size:11px; color:var(--muted); margin-bottom:6px; text-transform:uppercase;">Contraseña de Aplicación</label>
+          <input type="password" id="smtp-pass" style="width:100%;" value="${h(smtp.pass || '')}" placeholder="•••• •••• •••• ••••">
+        </div>
+        
+        <div class="field" style="margin-bottom:25px;">
+          <label style="display:block; font-size:11px; color:var(--muted); margin-bottom:6px; text-transform:uppercase;">Remitente (Nombre)</label>
+          <input type="text" id="smtp-from" style="width:100%;" value="${h(smtp.from || 'Auditoría Transparencia')}">
+        </div>
+        
+        <div style="display:flex; gap:12px;">
+          <button class="btn btn-primary" onclick="saveSmtp()" style="flex:1;">Guardar Cambios</button>
+          <button class="btn" onclick="testSmtp()" style="background:rgba(255,255,255,0.05);">Probar Conexión</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function saveSmtp() {
+  const body = {
+    host: document.getElementById('smtp-host').value,
+    port: parseInt(document.getElementById('smtp-port').value),
+    user: document.getElementById('smtp-user').value,
+    pass: document.getElementById('smtp-pass').value,
+    from: document.getElementById('smtp-from').value
+  };
+  const res = await api('POST', '/config/smtp', body);
+  if (res) alert('✅ Configuración SMTP guardada correctamente');
+}
+
+async function testSmtp() {
+  alert('🛠️ Función de prueba en desarrollo. Las credenciales se han guardado.');
+}
+
+let itemsMap = {}, catsMap = {}, subsMap = {}, usersMap = {};
+let itemFilter = 'all';
+
+function formatDate(ts) {
+  if (!ts) return '—';
+  const d = new Date(ts);
+  return `${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${d.getFullYear()}`;
+}
+
+async function renderDash() {
+  const container = document.getElementById('content');
+  container.innerHTML = `<div class="loading">Calculando métricas...</div>`;
+  const items = await api('GET', '/items') || [];
+  
+  const total = items.length;
+  if (!total) {
+    container.innerHTML = `<div class="empty">No hay datos para mostrar. Comienza creando ítems en el Gestor Maestro.</div>`;
+    return;
+  }
+  
+  const ok = items.filter(i => i.status === 'Completo').length;
+  const warn = items.filter(i => i.status === 'Incompleto').length;
+  const bad = items.filter(i => i.status === 'Faltante').length;
+  const perc = Math.round((ok / total) * 100);
+
+  container.innerHTML = `
+    <div class="dashboard">
+      <div class="dash-card">
+        <span class="dash-label">Cumplimiento Global</span>
+        <span class="dash-value">${perc}%</span>
+        <div class="dash-progress-bg">
+          <div class="dash-progress-bar ok" style="width: ${perc}%"></div>
+        </div>
+      </div>
+      <div class="dash-card ok">
+        <span class="dash-label">Ítems Completados</span>
+        <span class="dash-value">${ok}</span>
+        <span class="dash-label" style="margin-top:auto">${Math.round((ok/total)*100)}% del total auditado</span>
+      </div>
+      <div class="dash-card warn">
+        <span class="dash-label">Pendientes / Incompletos</span>
+        <span class="dash-value">${warn}</span>
+      </div>
+      <div class="dash-card bad">
+        <span class="dash-label">Faltantes / Críticos</span>
+        <span class="dash-value">${bad}</span>
+      </div>
+    </div>
+    
+    <div class="card" style="margin-top:20px;">
+      <h3 style="margin-bottom:15px; font-family:'Syne',sans-serif;">Resumen de Actividad</h3>
+      <p style="color:var(--muted); font-size:13px;">Se han auditado un total de <b>${total}</b> ítems en todas las categorías municipales.</p>
+    </div>
+  `;
+}
+
+async function renderMaster() {
+  document.getElementById('topbar-actions').innerHTML = '';
+  const [items, cats, subs, areasAll] = await Promise.all([
+    fetch(API+'/items').then(r=>r.json()),
+    fetch(API+'/categories').then(r=>r.json()),
+    fetch(API+'/categories/subcategories/all').then(r=>r.json()),
+    fetch(API+'/areas').then(r=>r.json())
+  ]);
+  categories = cats; subcategories = subs; areas = areasAll;
+  itemsMap = {}; items.forEach(i => itemsMap[i._id] = i);
+  catsMap = {}; cats.forEach(c => catsMap[c._id] = c);
+  subsMap = {}; subs.forEach(s => subsMap[s._id] = s);
+
+  let html = `
+    <div class="master-wrap">
+      <div style="margin-bottom:30px; display:flex; justify-content:space-between; align-items:end; gap:20px;">
+        <div style="flex:1">
+          <p style="color:var(--muted); font-size:12px; margin-bottom:8px;">Gestiona la estructura completa y asigna la fecha límite general para subsanar.</p>
+          <div style="display:flex; align-items:center; gap:10px; margin-top:10px;">
+            <div style="flex:1">
+              <label style="font-size:10px; color:var(--muted); text-transform:uppercase; display:block; margin-bottom:4px;">Fecha Límite Subsanación:</label>
+              <input type="date" id="global-deadline" value="${localStorage.getItem('globalCorrectionDeadline') || ''}" style="background:var(--surface2); border:1px solid var(--border2); color:var(--text); padding:5px 10px; border-radius:6px; font-family:inherit; font-size:12px; outline:none; width:100%;">
+            </div>
+            <div style="flex:1">
+              <label style="font-size:10px; color:var(--muted); text-transform:uppercase; display:block; margin-bottom:4px;">Enviar Copia (CC) por Defecto:</label>
+              <input type="text" id="global-cc" value="${localStorage.getItem('globalDefaultCC') || ''}" placeholder="email1@ejemplo.com, email2..." style="background:var(--surface2); border:1px solid var(--border2); color:var(--text); padding:5px 10px; border-radius:6px; font-family:inherit; font-size:12px; outline:none; width:100%;">
+            </div>
+            <button class="btn btn-sm" style="margin-top:20px;" onclick="saveGlobalSettings()">Guardar Configuración</button>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="openCatModal(null)">+ Nueva Categoría</button>
+      </div>`;
+  
+  cats.sort((a,b)=>(a.order||0)-(b.order||0)).forEach(cat => {
+    html += `<div class="tree-branch">
+      <div class="tree-node cat" style="background:transparent !important; border-bottom:1px solid rgba(255,255,255,0.05); padding:24px 0 8px 0; border-radius:0; border-left:none !important; transform:none !important; box-shadow:none !important; display:flex; align-items:center; justify-content:space-between;">
+        <div class="tree-content">
+          <div class="tree-title" style="font-family:'Syne', sans-serif; font-size:16px; color:#e0e7ff; font-weight:800; letter-spacing:-0.01em; text-transform:none; cursor:default;">${h(cat.name)}</div>
+        </div>
+        <div class="tree-actions-static" style="opacity:1;">
+          <button class="tbtn" style="background:var(--accent); color:#fff; border-radius:50%; width:24px; height:24px; padding:0; display:flex; align-items:center; justify-content:center; font-size:16px;" onclick="quickAddSub('${cat._id}')">+</button>
+        </div>
+      </div>
+      <div class="tree-children">`;
+
+    // Items directos en Categoría
+    const catItems = items.filter(i => {
+      const cId = i.category?._id || i.category;
+      const sId = i.subcategory?._id || i.subcategory;
+      return String(cId) === String(cat._id) && !sId;
+    });
+    catItems.forEach(item => {
+      html += renderTreeItem(item, 'cat');
+    });
+
+    // Subcategorías
+    const catSubs = subs.filter(s => String(s.category?._id || s.category) === String(cat._id)).sort((a,b)=>(a.order||0)-(b.order||0));
+    catSubs.forEach(sub => {
+        const subStatus = sub.status || 'Incompleto';
+        const subColor = { 'Completo':'#10b981', 'Incompleto':'#f59e0b', 'Faltante':'#ef4444', 'No disponible':'#6b7280' }[subStatus] || '#6b7280';
+
+        html += `
+      <div class="tree-node sub" style="border-left: 4px solid ${subColor};">
+        <div class="tree-icon" style="color:${subColor}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div>
+        <div class="tree-content">
+          <div class="tree-title">${sub.code ? `<span class="tree-code">${h(sub.code)}</span>` : ''} ${h(sub.name)}</div>
+          <div class="tree-meta">Subcategoría • ${subStatus} ${sub.areas?.length ? `• ${sub.areas.length} áreas` : ''}</div>
+        </div>
+        <div class="tree-actions">
+          <button class="tbtn" onclick="openSubModal(subsMap['${sub._id}'])">Editar</button>
+          <button class="tbtn" onclick="quickAddItem('${cat._id}','${sub._id}')">+ Ítem</button>
+          <button class="tbtn tdel" onclick="delSub('${sub._id}')">Borrar</button>
+          <button class="tbtn tbtn-send" onclick="sendNotification('${sub._id}', 'sub')">Enviar</button>
+        </div>
+      </div>`;
+
+      // Items en Subcategoría
+      const subItems = items.filter(it => String(it.subcategory?._id || it.subcategory) === String(sub._id));
+      subItems.forEach(item => {
+        html += renderTreeItem(item, 'sub');
+      });
+    });
+    html += `</div></div>`;
+  });
+  html += `</div>`;
+  document.getElementById('content').innerHTML = html;
+}
+
+function renderTreeItem(item, level) {
+  const statusColor = { 'Completo':'#10b981', 'Incompleto':'#f59e0b', 'Faltante':'#ef4444', 'No disponible':'#6b7280' }[item.status] || '#6b7280';
+  return `
+    <div class="tree-node item-node" style="border-left-color:${statusColor}">
+      <div class="tree-icon" style="color:${statusColor}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+      <div class="tree-content">
+        <div class="tree-title" style="font-size:12px; font-family:'DM Mono',monospace;">${h(item.name)}</div>
+        <div class="tree-meta">${h(item.tag || item.status)} • ${item.areas?.length||0} áreas</div>
+      </div>
+      <div class="tree-actions">
+        <button class="tbtn" onclick="editItem(itemsMap['${item._id}'])">Editar Ítem</button>
+        <button class="tbtn tdel" onclick="delItem('${item._id}')">Borrar</button>
+        <button class="tbtn tbtn-send" onclick="sendNotification('${item._id}', 'item')">Enviar</button>
+      </div>
+    </div>`;
+}
+
+function quickAddSub(catId) { editingId=null; openSubModal({category:catId}); }
+function quickAddItem(catId, subId) { editingId=null; openItemModal(null, catId, subId); }
+function editItem(item) { openItemModal(item); }
+
+async function renderItems() {
+  const [items, cats, areasAll] = await Promise.all([
+    fetch(API+'/items').then(r=>r.json()),
+    fetch(API+'/categories').then(r=>r.json()),
+    fetch(API+'/areas').then(r=>r.json())
+  ]);
+  categories = cats; areas = areasAll;
+  itemsMap = {};
+  items.forEach(i => { itemsMap[i._id] = i; });
+
+  const content = document.getElementById('content');
+  if (!items.length) { content.innerHTML = '<div class="empty">Sin ítems. Crea el primero.</div>'; return; }
+
+  const sortedCats = [...cats].sort((a,b)=>(a.order||0)-(b.order||0));
+  const catMap = {};
+  sortedCats.forEach(c => { catMap[c._id] = { cat:c, groups:{} }; });
+  items.forEach(item => {
+    const catId = item.category?._id || item.category;
+    if (!catMap[catId]) catMap[catId] = { cat:{_id:catId,name:'Sin categoría',code:'',order:999}, groups:{} };
+    const subId = item.subcategory?._id || item.subcategory || '__none__';
+    if (!catMap[catId].groups[subId]) catMap[catId].groups[subId] = { sub:item.subcategory, items:[] };
+    catMap[catId].groups[subId].items.push(item);
+  });
+
+  let html = `<div class="items-topbar">
+    <input type="text" placeholder="Buscar ítem..." oninput="applyItemFilter(this.value)">
+    <button class="fbtn active-all" data-f="all" onclick="setItemFilter('all',this)">Todos</button>
+    <button class="fbtn" data-f="Completo" onclick="setItemFilter('Completo',this)">● Completo</button>
+    <button class="fbtn" data-f="Incompleto" onclick="setItemFilter('Incompleto',this)">● Incompleto</button>
+    <button class="fbtn" data-f="Faltante" onclick="setItemFilter('Faltante',this)">● Faltante</button>
+    <button class="fbtn" data-f="No disponible" onclick="setItemFilter('No disponible',this)">● No disp.</button>
+  </div>`;
+
+  Object.values(catMap).forEach(({ cat, groups }) => {
+    const allItems = Object.values(groups).flatMap(g=>g.items);
+    if (!allItems.length) return;
+    const completed = allItems.filter(i=>i.status==='ok').length;
+    const total = allItems.length;
+    const allDone = completed === total;
+    const groupsHtml = Object.values(groups).map(({ sub, items: gItems }) => {
+      const subName = sub?.name || '';
+      
+      const subSubsHtml = gItems.map(item => renderAdminCard(item)).join('');
+
+      return `<div class="sub-group">
+        ${subName ? `<div class="sub-label">${h(subName)}</div>` : ''}
+        ${subSubsHtml}
+      </div>`;
+    }).join('');
+    html += `<div class="cat-section" data-cat="${cat._id}">
+      <div class="cat-header">
+        <span class="cat-num">${h(cat.code||'')}</span>
+        <span class="cat-name">${h(cat.name)}</span>
+        <span class="cat-badge ${allDone?'done':'partial'}" id="catbadge-${cat._id}">${completed} / ${total} completados</span>
+      </div>
+      ${groupsHtml}
+    </div>`;
+  });
+
+  content.innerHTML = html;
+}
+
+function renderAdminCard(item) {
+  const labels = { 'Completo':'COMPLETO', 'Incompleto':'INCOMPLETO', 'Faltante':'FALTANTE', 'No disponible':'NO DISPONIBLE' };
+  const colors = { 'Completo':'#10b981', 'Incompleto':'#f59e0b', 'Faltante':'#ef4444', 'No disponible':'#6b7280' };
+  const areaIds = (item.areas||[]).map(a=>a._id||a);
+  const assignedHtml = (item.areas||[]).map(a => {
+    const id=a._id||a; const name=a.name||(areas.find(x=>x._id===id)?.name||id);
+    return `<span class="area-pill-a">${h(name)}<button title="Quitar" onclick="inlineRemoveArea(event,'${item._id}','${id}')">×</button></span>`;
+  }).join('');
+  const unassignedHtml = areas.filter(a=>!areaIds.includes(a._id)).map(a =>
+    `<button class="area-pill-add-btn" onclick="inlineAddArea(event,'${item._id}','${a._id}')">${h(a.name)}</button>`
+  ).join('');
+  const areaPillsHtml = (assignedHtml||unassignedHtml) ? assignedHtml+unassignedHtml : '<span style="font-size:11px;color:var(--muted);font-style:italic">Sin áreas</span>';
+
+  return `<div class="item-card" id="card-${item._id}" data-status="${item.status}" data-name="${h(item.name)}">
+    <div class="item-header" onclick="toggleCard('${item._id}')">
+      <span class="item-stripe" style="background:${colors[item.status]}"></span>
+      <span class="item-tag-lbl">${h(item.tag||'')}</span>
+      <span class="item-name-lbl">${h(item.name)}</span>
+      <div class="item-hdr-right">
+        <span class="status-badge badge-${item.status}" id="badge-${item._id}">${labels[item.status]}</span>
+        <span class="expand-icon" id="icon-${item._id}">∨</span>
+      </div>
+    </div>
+    <div class="item-body" id="body-${item._id}">
+      <div class="item-detail-txt">${item.detail ? h(item.detail) : '<span style="color:var(--muted);font-style:italic">Sin detalle.</span>'}</div>
+      <div class="sec-lbl">Departamentos asignados</div>
+      <div class="area-pills" id="areapills-${item._id}">${areaPillsHtml}</div>
+      <div class="sec-lbl">Cambiar estado</div>
+      <div class="status-btns-row" id="sbtns-${item._id}">
+        <button class="sbtn sbtn-ok ${item.status==='ok'?'on':''}" onclick="inlineStatus(event,'${item._id}','ok')">● Completado</button>
+        <button class="sbtn sbtn-warn ${item.status==='warn'?'on':''}" onclick="inlineStatus(event,'${item._id}','warn')">● Incompleto</button>
+        <button class="sbtn sbtn-bad ${item.status==='bad'?'on':''}" onclick="inlineStatus(event,'${item._id}','bad')">● No disponible</button>
+      </div>
+      <div class="item-footer-row">
+        <button class="btn btn-sm" onclick="event.stopPropagation();editItem(itemsMap['${item._id}'])">Editar</button>
+        <button class="btn btn-sm btn-danger" onclick="event.stopPropagation();delItem('${item._id}')">Borrar</button>
+        <span class="item-meta-txt">ID: ...${item._id.slice(-6)} &nbsp; ${formatDate(item.updatedAt)}</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+function toggleCard(id) {
+  const body = document.getElementById('body-'+id);
+  const icon = document.getElementById('icon-'+id);
+  body.classList.toggle('open');
+  icon.classList.toggle('open', body.classList.contains('open'));
+}
+
+function setItemFilter(f, btn) {
+  itemFilter = f;
+  document.querySelectorAll('.fbtn').forEach(b => { b.className = 'fbtn'; if(b.dataset.f===f) b.classList.add('active-'+f); });
+  applyItemFilter();
+}
+
+function applyItemFilter(q) {
+  const val = (q !== undefined ? q : (document.querySelector('.items-topbar input')?.value||'')).toLowerCase().trim();
+  document.querySelectorAll('.cat-section').forEach(sec => {
+    let vis = false;
+    sec.querySelectorAll('.item-card').forEach(card => {
+      const show = (itemFilter==='all'||card.dataset.status===itemFilter) && (!val||card.textContent.toLowerCase().includes(val));
+      card.style.display = show ? '' : 'none';
+      if (show) vis = true;
+    });
+    sec.style.display = vis ? '' : 'none';
+  });
+}
+
+async function inlineStatus(event, id, status) {
+  event.stopPropagation();
+  const item = itemsMap[id]; if (!item) return;
+  const res = await api('PUT', '/items/'+id, {
+    name:item.name, category:item.category?._id||item.category,
+    subcategory:(item.subcategory?._id||item.subcategory)||null,
+    areas:(item.areas||[]).map(a=>a._id||a),
+    tag:item.tag||'', detail:item.detail||'', status,
+    prev_observation:item.prev_observation||'', deadline:item.deadline||null
+  });
+  if (res?.error) return alert(res.error);
+  itemsMap[id].status = status;
+  const colors={ok:'var(--ok)',warn:'var(--warn)',bad:'var(--bad)'};
+  const labels={ok:'COMPLETADO',warn:'INCOMPLETO',bad:'NO DISPONIBLE'};
+  const card = document.getElementById('card-'+id); if (!card) return;
+  card.dataset.status = status;
+  card.querySelector('.item-stripe').style.background = colors[status];
+  const badge = document.getElementById('badge-'+id);
+  badge.textContent = labels[status]; badge.className = 'status-badge badge-'+status;
+  document.querySelectorAll(`#sbtns-${id} .sbtn`).forEach(b=>b.classList.remove('on'));
+  document.querySelector(`#sbtns-${id} .sbtn-${status}`).classList.add('on');
+  const catId = item.category?._id||item.category;
+  const catItems = Object.values(itemsMap).filter(i=>(i.category?._id||i.category)===catId);
+  const comp=catItems.filter(i=>i.status==='ok').length, tot=catItems.length;
+  const cb=document.getElementById('catbadge-'+catId);
+  if(cb){cb.textContent=`${comp} / ${tot} completados`;cb.className='cat-badge '+(comp===tot?'done':'partial');}
+  applyItemFilter();
+}
+
+async function inlineAddArea(event, itemId, areaId) {
+  event.stopPropagation();
+  const item=itemsMap[itemId]; if(!item) return;
+  const cur=(item.areas||[]).map(a=>a._id||a);
+  if(cur.includes(areaId)) return;
+  const res=await api('PUT','/items/'+itemId,{name:item.name,category:item.category?._id||item.category,
+    subcategory:(item.subcategory?._id||item.subcategory)||null,tag:item.tag||'',
+    detail:item.detail||'',status:item.status,prev_observation:item.prev_observation||'',
+    deadline:item.deadline||null,areas:[...cur,areaId]});
+  if(res?.error) return alert(res.error);
+  const aObj=areas.find(a=>a._id===areaId);
+  itemsMap[itemId].areas=[...(item.areas||[]),aObj||{_id:areaId,name:areaId}];
+  refreshAdminPills(itemId);
+}
+
+async function inlineRemoveArea(event, itemId, areaId) {
+  event.stopPropagation();
+  const item=itemsMap[itemId]; if(!item) return;
+  const newAreas=(item.areas||[]).map(a=>a._id||a).filter(id=>id!==areaId);
+  const res=await api('PUT','/items/'+itemId,{name:item.name,category:item.category?._id||item.category,
+    subcategory:(item.subcategory?._id||item.subcategory)||null,tag:item.tag||'',
+    detail:item.detail||'',status:item.status,prev_observation:item.prev_observation||'',
+    deadline:item.deadline||null,areas:newAreas});
+  if(res?.error) return alert(res.error);
+  itemsMap[itemId].areas=(item.areas||[]).filter(a=>(a._id||a)!==areaId);
+  refreshAdminPills(itemId);
+}
+
+function refreshAdminPills(itemId) {
+  const item=itemsMap[itemId];
+  const container=document.getElementById('areapills-'+itemId); if(!container) return;
+  const areaIds=(item.areas||[]).map(a=>a._id||a);
+  const assigned=(item.areas||[]).map(a=>{
+    const id=a._id||a; const name=a.name||(areas.find(x=>x._id===id)?.name||id);
+    return `<span class="area-pill-a">${h(name)}<button title="Quitar" onclick="inlineRemoveArea(event,'${itemId}','${id}')">×</button></span>`;
+  }).join('');
+  const unassigned=areas.filter(a=>!areaIds.includes(a._id)).map(a=>
+    `<button class="area-pill-add-btn" onclick="inlineAddArea(event,'${itemId}','${a._id}')">${h(a.name)}</button>`
+  ).join('');
+  container.innerHTML=(assigned||unassigned)?assigned+unassigned:'<span style="font-size:11px;color:var(--muted);font-style:italic">Sin áreas</span>';
+}
+
+async function renderCategories() {
+  const cats = await fetch(API+'/categories').then(r=>r.json());
+  categories = cats;
+  document.getElementById('topbar-actions').innerHTML = '<button class="btn btn-primary" onclick="openCatModal(null)">+ Nueva Categoría</button>';
+  document.getElementById('content').innerHTML = `
+    <table class="tbl">
+      <thead><tr><th>Nombre</th><th>Código</th><th>Orden</th><th>Acciones</th></tr></thead>
+      <tbody>
+        ${cats.map(c=>`<tr>
+          <td>${h(c.name)}</td>
+          <td><span class="badge">${h(c.code||'—')}</span></td>
+          <td>${c.order||0}</td>
+          <td style="display:flex;gap:6px">
+            <button class="btn btn-sm" onclick='editCat(${JSON.stringify(c)})'>Editar</button>
+            <button class="btn btn-sm btn-danger" onclick="delCat('${c._id}')">Borrar</button>
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+async function renderSubcategories() {
+  const [subs, cats] = await Promise.all([
+    fetch(API+'/categories/subcategories/all').then(r=>r.json()),
+    fetch(API+'/categories').then(r=>r.json())
+  ]);
+  categories = cats;
+  document.getElementById('topbar-actions').innerHTML = '<button class="btn btn-primary" onclick="openSubModal(null)">+ Nueva Subcat</button>';
+  document.getElementById('content').innerHTML = `
+    <table class="tbl">
+      <thead><tr><th>Nombre</th><th>Categoría</th><th>Código</th><th>Acciones</th></tr></thead>
+      <tbody>
+        ${subs.map(s=>`<tr>
+          <td>${h(s.name)}</td>
+          <td><span class="badge">${h(s.category?.name||'—')}</span></td>
+          <td><span class="badge">${h(s.code||'—')}</span></td>
+          <td style="display:flex;gap:6px">
+            <button class="btn btn-sm" onclick='editSub(${JSON.stringify(s)})'>Editar</button>
+            <button class="btn btn-sm btn-danger" onclick="delSub('${s._id}')">Borrar</button>
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+async function renderSubSubcategories() {
+  const [subs, subsAll] = await Promise.all([
+    fetch(API+'/categories/subsubcategories/all').then(r=>r.json()),
+    fetch(API+'/categories/subcategories/all').then(r=>r.json())
+  ]);
+  subsubcategories = subs;
+  subcategories = subsAll;
+  document.getElementById('content').innerHTML = `
+    <table class="tbl">
+      <thead><tr><th>Nombre</th><th>Subcategoría</th><th>Código</th><th>Acciones</th></tr></thead>
+      <tbody>
+        ${subs.map(s=>`<tr>
+          <td>${h(s.name)}</td>
+          <td><span class="badge">${h(s.subcategory?.name||'—')}</span> <small style="color:var(--muted)">(${h(s.subcategory?.category?.name||'')})</small></td>
+          <td><span class="badge">${h(s.code||'—')}</span></td>
+          <td style="display:flex;gap:6px">
+            <button class="btn btn-sm" onclick='editSubSub(${JSON.stringify(s)})'>Editar</button>
+            <button class="btn btn-sm btn-danger" onclick="delSubSub('${s._id}')">Borrar</button>
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+async function renderAreas() {
+  const data = await fetch(API+'/areas').then(r=>r.json());
+  areas = data;
+  document.getElementById('topbar-actions').innerHTML = '<button class="btn btn-primary" onclick="openAreaModal()">+ Nueva Área</button>';
+  document.getElementById('content').innerHTML = `
+    <table class="tbl">
+      <thead><tr><th>Nombre</th><th>Acciones</th></tr></thead>
+      <tbody>
+        ${data.map(a=>`<tr>
+          <td>${h(a.name)}</td>
+          <td><button class="btn btn-sm btn-danger" onclick="delArea('${a._id}')">Borrar</button></td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+async function renderUsers() {
+  const users = await api('GET', '/users');
+  usersMap = {}; users.forEach(u => usersMap[u.id] = u);
+  document.getElementById('topbar-actions').innerHTML = '<button class="btn btn-primary" onclick="openUserModal()">+ Nuevo Usuario</button>';
+  document.getElementById('content').innerHTML = `
+    <table class="tbl">
+      <thead><tr><th>Usuario</th><th>Email</th><th>Rol</th><th>Estado</th><th>Acciones</th></tr></thead>
+      <tbody>
+        ${users.map(u=>`<tr>
+          <td>${h(u.username)}</td>
+          <td>${h(u.email)}</td>
+          <td><span class="badge" style="background:var(--surface2)">${h(u.role)}</span></td>
+          <td>
+            <span class="active-dot ${u.active?'on':'off'}"></span>
+            ${u.active?'Activo':'Inactivo'}
+          </td>
+          <td style="display:flex;gap:6px">
+            <button class="btn btn-sm" onclick="openUserModal(usersMap['${u.id}'])">Editar</button>
+            <button class="btn btn-sm" onclick="toggleUser('${u.id}',this)">${u.active?'Desactivar':'Activar'}</button>
+            <button class="btn btn-sm btn-danger" onclick="delUser('${u.id}')">Borrar</button>
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+// ── FILTER ────────────────────────────────────────────────────
+
+function filterRows(tblId, q) {
+  const tbl = document.getElementById(tblId);
+  if (!tbl) return;
+  const val = q.toLowerCase();
+  tbl.querySelectorAll('tbody tr').forEach(tr => {
+    tr.style.display = tr.textContent.toLowerCase().includes(val) ? '' : 'none';
+  });
+}
+
+// ── OPEN NEW ──────────────────────────────────────────────────
+
+function openNew() {
+  editingId = null;
+  modalType = '';
+  selectedAreas = [];
+  if (currentPage === 'items') openItemModal(null);
+  else if (currentPage === 'categories') openCatModal(null);
+  else if (currentPage === 'subcategories') openSubModal(null);
+  else if (currentPage === 'areas') openAreaModal();
+  else if (currentPage === 'users') openUserModal();
+}
+
+// ── ITEMS ─────────────────────────────────────────────────────
+
+async function openItemModal(item, preCatId, preSubId) {
+  editingId = item?._id || null;
+  modalType = 'item';
+  selectedAreas = (item?.areas||[]).map(a=>a._id||a);
+
+  const curCatId = preCatId || item?.category?._id || item?.category || '';
+  const curSubId = preSubId || item?.subcategory?._id || item?.subcategory || '';
+
+  document.getElementById('modal-title').textContent = item?._id ? 'Editar ítem' : 'Nuevo ítem';
+  document.getElementById('modal-body').innerHTML = `
+    <div class="field"><label>Nombre *</label><input id="f-name" value="${h(item?.name||'')}"></div>
+    <div class="field"><label>Categoría *</label>
+      <select id="f-cat" onchange="loadSubs(this.value,'f-sub','')" ${preCatId?'disabled':''}>
+        <option value="">— Seleccionar —</option>
+        ${categories.map(c=>`<option value="${c._id}" ${curCatId==String(c._id)?'selected':''}>${h(c.name)}</option>`).join('')}
+      </select>
+    </div>
+    <div class="field"><label>Subcategoría</label>
+      <select id="f-sub" ${preSubId?'disabled':''}>
+        <option value="">— Ninguna —</option>
+        ${subcategories.filter(s=>String(s.category?._id||s.category)==curCatId)
+          .map(s=>`<option value="${s._id}" ${curSubId==String(s._id)?'selected':''}>${h(s.name)}</option>`).join('')}
+      </select>
+    </div>
+    
+    <div class="field"><label>Estado</label>
+      <div class="status-btns-row" id="status-group">
+        <button class="sbtn sbtn-ok ${(!item || item.status==='Completo')?'on':''}" onclick="setStatus('Completo')">Completo</button>
+        <button class="sbtn sbtn-warn ${(item?.status==='Incompleto')?'on':''}" onclick="setStatus('Incompleto')">Incompleto</button>
+        <button class="sbtn sbtn-bad ${(item?.status==='Faltante')?'on':''}" onclick="setStatus('Faltante')">Faltante</button>
+        <button class="sbtn sbtn-na ${(item?.status==='No disponible')?'on':''}" onclick="setStatus('No disponible')">No disp.</button>
+        <input type="hidden" id="f-status" value="${item?.status || 'Incompleto'}">
+      </div>
+    </div>
+
+    <div class="field"><label>Áreas (Click para asignar)</label>
+      <div class="area-pills" style="margin-top:8px">
+        ${areas.map(a => {
+          const active = selectedAreas.includes(String(a._id));
+          return `<button class="area-pill-a ${active?'on':''}" id="apill-${a._id}" onclick="toggleArea('${a._id}')">${h(a.name)}</button>`;
+        }).join('')}
+      </div>
+    </div>
+
+    <div class="field"><label>Emails Responsables (separados por coma)</label><input id="f-emails" value="${h(item?.responsible_emails||'')}" placeholder="ejemplo@correo.com"></div>
+
+    <div class="field"><label>Etiqueta (Opcional)</label><input id="f-tag" value="${h(item?.tag||'')}"></div>
+    <div class="field"><label>Detalle</label><textarea id="f-detail">${h(item?.detail||'')}</textarea></div>
+    <div class="field"><label>Observación previa</label><textarea id="f-prev">${h(item?.prev_observation||'')}</textarea></div>
+  `;
+  showModal();
+}
+
+function setStatus(val) {
+  document.getElementById('f-status').value = val;
+  const group = document.getElementById('status-group');
+  group.querySelectorAll('.sbtn').forEach(b => b.classList.remove('on'));
+  if (val==='Completo') group.querySelector('.sbtn-ok').classList.add('on');
+  if (val==='Incompleto') group.querySelector('.sbtn-warn').classList.add('on');
+  if (val==='Faltante') group.querySelector('.sbtn-bad').classList.add('on');
+  if (val==='No disponible') group.querySelector('.sbtn-na').classList.add('on');
+}
+
+function toggleArea(id) {
+  const idx = selectedAreas.indexOf(String(id));
+  const btn = document.getElementById('apill-'+id);
+  if (idx === -1) {
+    selectedAreas.push(String(id));
+    btn.classList.add('on');
+  } else {
+    selectedAreas.splice(idx, 1);
+    btn.classList.remove('on');
+  }
+}
+
+function renderChips(arrs) {
+  return arrs.map(a=>{
+    const id = a._id||a;
+    const name = a.name || (areas.find(x=>x._id===id)?.name||id);
+    return `<span class="chip"><span>${h(name)}</span><button onclick="removeArea('${id}')">×</button></span>`;
+  }).join('');
+}
+
+function addArea() {
+  const sel = document.getElementById('area-select');
+  const id = sel.value;
+  if (!id || selectedAreas.includes(id)) return;
+  selectedAreas.push(id);
+  const area = areas.find(a=>a._id===id);
+  document.getElementById('chips').innerHTML = renderChips(selectedAreas.map(id=>areas.find(a=>a._id===id)||{_id:id,name:id}));
+}
+
+function removeArea(id) {
+  selectedAreas = selectedAreas.filter(x=>x!==id);
+  document.getElementById('chips').innerHTML = renderChips(selectedAreas.map(id=>areas.find(a=>a._id===id)||{_id:id,name:id}));
+}
+
+async function loadSubs(catId, subSelId, currentSubId) {
+  const sel = document.getElementById(subSelId);
+  if (!catId) { sel.innerHTML = '<option value="">— Ninguna —</option>'; return; }
+  const subs = await fetch(API+'/categories/'+catId+'/subcategories').then(r=>r.json());
+  sel.innerHTML = '<option value="">— Ninguna —</option>' +
+    subs.map(s=>`<option value="${s._id}" ${s._id===currentSubId?'selected':''}>${h(s.name)}</option>`).join('');
+}
+
+function editItem(item) { openItemModal(item); }
+
+async function delItem(id) {
+  if (!confirm('¿Borrar este ítem?')) return;
+  await api('DELETE', '/items/'+id);
+  render();
+}
+
+// ── CATEGORIES ────────────────────────────────────────────────
+
+function openCatModal(cat) {
+  editingId = cat?._id || null;
+  modalType = 'cat';
+  selectedAreas = (cat?.areas||[]).map(a=>a._id||a);
+  
+  let nextOrder = 0;
+  if (cat) {
+    nextOrder = cat.order || 0;
+  } else {
+    const orders = categories.map(c => Number(c.order) || 0);
+    nextOrder = orders.length ? Math.max(...orders) + 1 : 1;
+  }
+  if (nextOrder < 1 && !cat) nextOrder = 1;
+
+  document.getElementById('modal-title').textContent = cat ? 'Editar categoría' : 'Nueva categoría';
+  document.getElementById('modal-body').innerHTML = `
+    <div class="field"><label>Nombre *</label><input id="f-name" value="${h(cat?.name||'')}"></div>
+    <div class="field"><label>Número (Orden) *</label><input type="number" id="f-number" value="${nextOrder}"></div>
+    <div class="field"><label>Emails Responsables (separados por coma)</label><input id="f-emails" value="${h(cat?.responsible_emails||'')}" placeholder="ejemplo@correo.com"></div>
+    <div class="field"><label>Áreas (Click para asignar)</label>
+      <div class="area-pills" style="margin-top:8px">
+        ${areas.map(a => {
+          const active = selectedAreas.includes(String(a._id));
+          return `<button class="area-pill-a ${active?'on':''}" id="apill-${a._id}" onclick="toggleArea('${a._id}')">${h(a.name)}</button>`;
+        }).join('')}
+      </div>
+    </div>`;
+  showModal();
+}
+
+function editCat(cat) { openCatModal(cat); }
+
+async function delCat(id) {
+  console.log('Deleting Cat:', id);
+  if (!confirm('¿Borrar esta categoría? Se borrarán también sus subcategorías.')) return;
+  try {
+    const res = await api('DELETE', '/categories/'+id);
+    console.log('Delete result:', res);
+    render();
+  } catch(e) {
+    console.error('Delete error:', e);
+    alert('Error al borrar: ' + e.message);
+  }
+}
+
+// ── SUBCATEGORIES ─────────────────────────────────────────────
+
+async function openSubModal(sub) {
+  console.log('Opening Sub Modal:', sub);
+  editingId = sub?._id || null;
+  modalType = 'sub';
+  selectedAreas = (sub?.areas||[]).map(a=>a._id||a);
+  
+  const cats = await fetch(API+'/categories').then(r=>r.json());
+  categories = cats;
+  
+  const parentCatId = sub?.category?._id || sub?.category || '';
+  let nextOrder = 1;
+  
+  if (sub?._id) {
+    nextOrder = sub.order || 0;
+  } else if (parentCatId) {
+    const siblings = subcategories.filter(s => String(s.category?._id || s.category) === String(parentCatId));
+    const orders = siblings.map(s => Number(s.order) || 0);
+    nextOrder = orders.length ? Math.max(...orders) + 1 : 1;
+  } else {
+    const orders = subcategories.map(s => Number(s.order) || 0);
+    nextOrder = orders.length ? Math.max(...orders) + 1 : 1;
+  }
+  if (nextOrder < 1 && !sub?._id) nextOrder = 1;
+
+  document.getElementById('modal-title').textContent = sub?._id ? 'Editar subcategoría' : 'Nueva subcategoría';
+  document.getElementById('modal-body').innerHTML = `
+    <div class="field"><label>Nombre *</label><input id="f-name" value="${h(sub?.name||'')}"></div>
+    <div class="field"><label>Categoría *</label>
+      <select id="f-cat">
+        <option value="">— Seleccionar —</option>
+        ${cats.map(c=>`<option value="${c._id}" ${parentCatId==String(c._id)?'selected':''}>${h(c.name)}</option>`).join('')}
+      </select>
+    </div>
+    <div class="field"><label>Número (Orden) *</label><input type="number" id="f-number" value="${nextOrder}"></div>
+    <div class="field"><label>Estado</label>
+      <div class="status-btns-row" id="status-group">
+        <button class="sbtn sbtn-ok ${(!sub || sub.status==='Completo')?'on':''}" onclick="setStatus('Completo')">Completo</button>
+        <button class="sbtn sbtn-warn ${(sub?.status==='Incompleto')?'on':''}" onclick="setStatus('Incompleto')">Incompleto</button>
+        <button class="sbtn sbtn-bad ${(sub?.status==='Faltante')?'on':''}" onclick="setStatus('Faltante')">Faltante</button>
+        <button class="sbtn sbtn-na ${(sub?.status==='No disponible')?'on':''}" onclick="setStatus('No disponible')">No disp.</button>
+        <input type="hidden" id="f-status" value="${sub?.status || 'Incompleto'}">
+      </div>
+    </div>
+    <div class="field"><label>Emails Responsables (separados por coma)</label><input id="f-emails" value="${h(sub?.responsible_emails||'')}" placeholder="ejemplo@correo.com"></div>
+    <div class="field"><label>Áreas (Click para asignar)</label>
+      <div class="area-pills" style="margin-top:8px">
+        ${areas.map(a => {
+          const active = selectedAreas.includes(String(a._id));
+          return `<button class="area-pill-a ${active?'on':''}" id="apill-${a._id}" onclick="toggleArea('${a._id}')">${h(a.name)}</button>`;
+        }).join('')}
+      </div>
+    </div>`;
+  showModal();
+}
+
+function editSub(sub) { openSubModal(sub); }
+
+async function delSub(id) {
+  if (!confirm('¿Borrar esta subcategoría?')) return;
+  await api('DELETE', '/categories/subcategories/'+id);
+  render();
+}
+
+// ── AREAS ─────────────────────────────────────────────────────
+
+function openAreaModal() {
+  editingId = null;
+  modalType = 'area';
+  document.getElementById('modal-title').textContent = 'Nueva área';
+  document.getElementById('modal-body').innerHTML = `
+    <div class="field"><label>Nombre *</label><input id="f-name" placeholder="Ej: Municipal"></div>`;
+  showModal();
+}
+
+async function delArea(id) {
+  if (!confirm('¿Borrar esta área?')) return;
+  await api('DELETE', '/areas/'+id);
+  render();
+}
+
+// ── USERS ─────────────────────────────────────────────────────
+
+function openUserModal(u) {
+  editingId = u?.id || null;
+  modalType = 'user';
+  document.getElementById('modal-title').textContent = u ? 'Editar usuario' : 'Nuevo usuario';
+  document.getElementById('modal-body').innerHTML = `
+    <div class="field"><label>Usuario *</label><input id="f-username" value="${h(u?.username||'')}" autocomplete="off"></div>
+    <div class="field"><label>Email *</label><input type="email" id="f-email" value="${h(u?.email||'')}"></div>
+    <div class="field"><label>${u ? 'Nueva Contraseña (dejar en blanco para no cambiar)' : 'Contraseña *'}</label><input type="password" id="f-password" autocomplete="new-password"></div>
+    <div class="field"><label>Rol *</label>
+      <select id="f-role">
+        <option value="auditor" ${u?.role==='auditor'?'selected':''}>Auditor</option>
+        <option value="admin" ${u?.role==='admin'?'selected':''}>Admin</option>
+      </select>
+    </div>`;
+  showModal();
+}
+
+async function toggleUser(id, btn) {
+  const data = await api('PATCH', '/users/'+id+'/toggle');
+  if (data) render();
+}
+
+async function delUser(id) {
+  if (!confirm('¿Borrar este usuario?')) return;
+  await api('DELETE', '/users/'+id);
+  render();
+}
+
+// ── SAVE ──────────────────────────────────────────────────────
+
+async function save() {
+  const btn = document.getElementById('btn-save');
+  btn.disabled = true;
+  try {
+    if (modalType === 'item') await saveItem();
+    else if (modalType === 'cat') await saveCat();
+    else if (modalType === 'sub') await saveSub();
+    else if (modalType === 'area') await saveArea();
+    else if (modalType === 'user') await saveUser();
+    closeModal();
+    render();
+  } catch(e) {
+    alert(e.message || 'Error al guardar');
+  }
+  btn.disabled = false;
+}
+
+async function saveItem() {
+  const body = {
+    name: document.getElementById('f-name').value.trim(),
+    category: document.getElementById('f-cat').value,
+    subcategory: document.getElementById('f-sub').value || null,
+    status: document.getElementById('f-status').value,
+    tag: document.getElementById('f-tag').value.trim(),
+    detail: document.getElementById('f-detail').value.trim(),
+    prev_observation: document.getElementById('f-prev').value.trim(),
+    areas: selectedAreas,
+    responsible_emails: document.getElementById('f-emails').value.trim()
+  };
+  if (!body.name) throw new Error('El nombre es obligatorio');
+  if (!body.category) throw new Error('Selecciona una categoría');
+  const res = editingId
+    ? await api('PUT', '/items/'+editingId, body)
+    : await api('POST', '/items', body);
+  if (res?.error) throw new Error(res.error);
+}
+
+async function saveCat() {
+  const num = document.getElementById('f-number').value;
+  const body = {
+    name: document.getElementById('f-name').value.trim(),
+    code: num,
+    order: parseInt(num)||0,
+    areas: selectedAreas,
+    responsible_emails: document.getElementById('f-emails').value.trim()
+  };
+  if (!body.name) throw new Error('El nombre es obligatorio');
+  const res = editingId
+    ? await api('PUT', '/categories/'+editingId, body)
+    : await api('POST', '/categories', body);
+  if (res?.error) throw new Error(res.error);
+}
+
+async function saveSub() {
+  const catId = document.getElementById('f-cat').value;
+  const num = document.getElementById('f-number').value;
+  const body = {
+    name: document.getElementById('f-name').value.trim(),
+    code: num,
+    order: parseInt(num)||0,
+    areas: selectedAreas,
+    responsible_emails: document.getElementById('f-emails').value.trim(),
+    status: document.getElementById('f-status').value
+  };
+  if (!body.name) throw new Error('El nombre es obligatorio');
+  if (!catId) throw new Error('Selecciona una categoría');
+  const res = editingId
+    ? await api('PUT', '/categories/subcategories/'+editingId, body)
+    : await api('POST', '/categories/'+catId+'/subcategories', body);
+  if (res?.error) throw new Error(res.error);
+}
+
+async function saveArea() {
+  const name = document.getElementById('f-name').value.trim();
+  if (!name) throw new Error('El nombre es obligatorio');
+  const res = await api('POST', '/areas', { name });
+  if (res?.error) throw new Error(res.error);
+}
+
+async function saveUser() {
+  const body = {
+    username: document.getElementById('f-username').value.trim(),
+    email: document.getElementById('f-email').value.trim(),
+    password: document.getElementById('f-password').value,
+    role: document.getElementById('f-role').value
+  };
+  if (!body.username || !body.email) throw new Error('Usuario y Email son obligatorios');
+  if (!editingId && !body.password) throw new Error('La contraseña es obligatoria para nuevos usuarios');
+  
+  const res = editingId
+    ? await api('PUT', '/users/'+editingId, body)
+    : await api('POST', '/users', body);
+    
+  if (res?.error) throw new Error(res.error);
+}
+
+// ── MODAL HELPERS ─────────────────────────────────────────────
+
+function showModal() { document.getElementById('modal').classList.remove('hidden'); }
+function closeModal() { document.getElementById('modal').classList.add('hidden'); }
+
+document.getElementById('modal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeModal();
+});
+
+goPage('master');
+</script>
+</body>
+</html>

@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel · Auditoría</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ok:#00c896;--ok-bg:#00c89615;--warn:#f5a623;--warn-bg:#f5a62315;
+  --bad:#ff4d4d;--bad-bg:#ff4d4d15;--bg:#0c0e14;--surface:#13161f;
+  --surface2:#1a1e2b;--border:#ffffff10;--border2:#ffffff20;
+  --text:#eef0f8;--muted:#6e7491;--accent:#5b7fff;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-height:100vh;}
+
+/* TOP BAR */
+.topbar{position:sticky;top:0;z-index:50;background:var(--surface);border-bottom:1px solid var(--border2);
+  display:flex;align-items:center;gap:16px;padding:12px 28px;}
+.brand{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;white-space:nowrap;}
+.brand span{color:var(--accent);}
+.tb-sep{width:1px;height:20px;background:var(--border2);}
+.tb-indicator{font-size:11px;color:var(--muted);}
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:10px;}
+.user-chip{font-size:11px;color:var(--muted);background:var(--surface2);border:1px solid var(--border2);
+  border-radius:6px;padding:5px 10px;}
+.user-chip b{color:var(--text);}
+
+/* BUTTONS */
+.btn{background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:7px 14px;
+  font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);cursor:pointer;
+  text-transform:uppercase;letter-spacing:.06em;transition:all .2s;text-decoration:none;display:inline-flex;align-items:center;}
+.btn:hover{color:var(--text);background:var(--surface2);}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+.btn-primary:hover{opacity:.85;color:#fff;}
+.btn-danger{border-color:var(--bad);color:var(--bad);}
+.btn-danger:hover{background:var(--bad-bg);}
+.btn-sm{padding:4px 10px;font-size:10px;}
+.btn-logout:hover{border-color:var(--bad);color:var(--bad);}
+
+/* FILTERS BAR */
+.filters{display:flex;align-items:center;gap:12px;padding:14px 28px;border-bottom:1px solid var(--border);
+  background:var(--bg);flex-wrap:wrap;}
+.search-input{flex:1;min-width:200px;background:var(--surface);border:1px solid var(--border2);border-radius:7px;
+  padding:8px 14px;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;outline:none;}
+.search-input:focus{border-color:var(--accent);}
+.filter-group{display:flex;gap:6px;}
+.fbtn{background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:6px 12px;
+  font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);cursor:pointer;
+  text-transform:uppercase;letter-spacing:.06em;transition:all .15s;}
+.fbtn:hover{color:var(--text);}
+.fbtn.active-all{background:var(--surface);border-color:var(--border2);color:var(--text);}
+.fbtn.active-ok{background:var(--ok-bg);border-color:#00c89650;color:var(--ok);}
+.fbtn.active-warn{background:var(--warn-bg);border-color:#f5a62350;color:var(--warn);}
+.fbtn.active-bad{background:var(--bad-bg);border-color:#ff4d4d50;color:var(--bad);}
+
+/* CONTENT */
+.content{max-width:960px;margin:0 auto;padding:28px 28px 60px;}
+
+/* CATEGORY SECTION */
+.cat-section{margin-bottom:36px;}
+.cat-header{display:flex;align-items:center;gap:14px;padding:10px 0 12px;
+  border-bottom:2px solid var(--border2);margin-bottom:14px;}
+.cat-num{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--accent);min-width:36px;}
+.cat-name{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;flex:1;line-height:1.3;}
+.cat-badge{border-radius:6px;padding:4px 14px;font-size:11px;white-space:nowrap;border:1px solid;}
+.cat-badge.done{background:var(--ok-bg);color:var(--ok);border-color:#00c89640;}
+.cat-badge.partial{background:var(--surface2);color:var(--muted);border-color:var(--border2);}
+
+/* SUBCATEGORY GROUP */
+.sub-group{margin-bottom:10px;}
+.sub-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;
+  padding:5px 0 7px 10px;border-left:2px solid var(--border2);margin-bottom:6px;line-height:1.4;}
+
+/* ITEM CARD */
+.item-card{border-radius:8px;background:var(--surface);border:1px solid var(--border);
+  overflow:hidden;margin-bottom:8px;transition:border-color .2s;}
+.item-card:hover{border-color:var(--border2);}
+.item-header{display:flex;align-items:center;gap:12px;padding:14px 16px 14px 20px;
+  cursor:pointer;position:relative;-webkit-user-select:none;user-select:none;}
+.item-stripe{position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:8px 0 0 8px;}
+.item-tag{font-size:10px;color:var(--muted);min-width:28px;font-family:'DM Mono',monospace;}
+.item-name{flex:1;font-size:13px;line-height:1.4;}
+.item-header-right{display:flex;align-items:center;gap:8px;margin-left:8px;flex-shrink:0;}
+.status-badge{font-size:10px;padding:3px 10px;border-radius:4px;text-transform:uppercase;letter-spacing:.05em;border:1px solid;}
+.badge-ok{background:var(--ok-bg);color:var(--ok);border-color:#00c89630;}
+.badge-warn{background:var(--warn-bg);color:var(--warn);border-color:#f5a62330;}
+.badge-bad{background:var(--bad-bg);color:var(--bad);border-color:#ff4d4d30;}
+.expand-icon{color:var(--muted);font-size:11px;transition:transform .25s;line-height:1;}
+.expand-icon.open{transform:rotate(180deg);}
+
+/* ITEM BODY */
+.item-body{padding:0 18px 18px 20px;display:none;}
+.item-body.open{display:block;}
+.item-detail{font-size:12px;color:var(--muted);padding:14px 0 16px;line-height:1.7;
+  border-bottom:1px solid var(--border);margin-bottom:16px;white-space:pre-wrap;}
+.section-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;
+  display:flex;align-items:center;gap:6px;margin-bottom:10px;}
+.section-lbl::before{content:'';display:inline-block;width:6px;height:6px;border:1px solid var(--muted);border-radius:1px;}
+
+/* AREA PILLS */
+.area-pills{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:18px;}
+.area-pill-assigned{background:var(--surface2);border:1px solid var(--border2);border-radius:4px;
+  padding:4px 10px;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--text);
+  display:flex;align-items:center;gap:6px;}
+.area-pill-assigned button{background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;
+  line-height:1;padding:0;transition:color .15s;}
+.area-pill-assigned button:hover{color:var(--bad);}
+.area-pill-add{background:transparent;border:1px dashed var(--border2);border-radius:4px;
+  padding:4px 10px;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);
+  cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .15s;font-family:'DM Mono',monospace;}
+.area-pill-add:hover{border-color:var(--ok);color:var(--ok);background:var(--ok-bg);}
+.area-pill-add::before{content:'+';}
+.area-pill-none{font-size:11px;color:var(--muted);font-style:italic;}
+
+/* STATUS BUTTONS */
+.status-btns{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+.sbtn{background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:8px 16px;
+  font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);cursor:pointer;
+  letter-spacing:.05em;transition:all .2s;}
+.sbtn:hover{color:var(--text);border-color:var(--border2);background:var(--surface);}
+.sbtn-ok.on{border-color:var(--ok);color:var(--ok);background:var(--ok-bg);}
+.sbtn-warn.on{border-color:var(--warn);color:var(--warn);background:var(--warn-bg);}
+.sbtn-bad.on{border-color:var(--bad);color:var(--bad);background:var(--bad-bg);}
+
+/* SUB CARD (FOLDER) */
+.sub-card{border-radius:10px; background:var(--surface2); border:1px solid var(--border2); margin-bottom:16px; overflow:hidden;}
+.sub-header{display:flex; align-items:center; gap:12px; padding:16px 20px; cursor:pointer; position:relative; background:rgba(255,255,255,0.02);}
+.sub-stripe{position:absolute; left:0; top:0; bottom:0; width:4px;}
+.sub-icon{color:var(--muted); width:18px; height:18px; flex-shrink:0;}
+.sub-name-text{flex:1; font-family:'Syne', sans-serif; font-weight:700; font-size:13px; color:var(--text);}
+.sub-body{padding:20px; display:none; border-top:1px solid var(--border);}
+.sub-body.open{display:block;}
+
+.item-footer{display:flex;align-items:center;gap:8px;padding-top:12px;border-top:1px solid var(--border);}
+.item-meta{margin-left:auto;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
+
+/* EMPTY */
+.empty{text-align:center;padding:60px 20px;color:var(--muted);font-size:12px;}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:#00000085;z-index:200;
+  display:flex;align-items:center;justify-content:center;padding:20px;}
+.modal-overlay.hidden{display:none;}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:12px;
+  width:100%;max-width:540px;max-height:90vh;overflow-y:auto;}
+.modal-head{padding:20px 24px;border-bottom:1px solid var(--border);
+  display:flex;justify-content:space-between;align-items:center;}
+.modal-head h3{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;}
+.modal-body{padding:24px;}
+.modal-foot{padding:16px 24px;border-top:1px solid var(--border);
+  display:flex;justify-content:flex-end;gap:8px;}
+.close-btn{background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;line-height:1;}
+.close-btn:hover{color:var(--text);}
+.field{margin-bottom:16px;}
+.field label{display:block;font-size:10px;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.07em;margin-bottom:6px;}
+.field input,.field select,.field textarea{width:100%;background:var(--surface2);
+  border:1px solid var(--border2);border-radius:7px;padding:9px 12px;color:var(--text);
+  font-family:'DM Mono',monospace;font-size:12px;outline:none;transition:border-color .2s;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);}
+.field textarea{resize:vertical;min-height:80px;}
+.field select option{background:var(--surface2);}
+/* DASHBOARD */
+.dashboard{display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:20px; margin-bottom:30px;}
+.dash-card{background:var(--surface); border:1px solid var(--border2); border-radius:12px; padding:20px; display:flex; flex-direction:column; gap:10px; position:relative; overflow:hidden;}
+.dash-card::before{content:''; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--primary);}
+.dash-card.ok::before{background:var(--ok);}
+.dash-card.warn::before{background:var(--warn);}
+.dash-card.bad::before{background:var(--bad);}
+.dash-label{font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.1em;}
+.dash-value{font-family:'Syne', sans-serif; font-size:24px; font-weight:800; color:var(--text);}
+.dash-progress-bg{height:6px; background:rgba(255,255,255,0.05); border-radius:3px; overflow:hidden;}
+.dash-progress-bar{height:100%; background:var(--primary); transition:width .5s ease-out;}
+.dash-progress-bar.ok{background:var(--ok);}
+
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
+.chip{background:var(--surface);border:1px solid var(--border2);border-radius:4px;
+  padding:3px 8px;font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px;}
+.chip button{background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:0;}
+.chip button:hover{color:var(--bad);}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="brand">Auditoría <span>Panel</span></span>
+  <div class="tb-sep"></div>
+  <span class="tb-indicator" id="tb-indicator">Cargando...</span>
+  <div class="tb-right">
+    <span class="user-chip"><b id="tb-user"></b>&nbsp;<span id="tb-role"></span></span>
+    <a id="admin-link" class="btn" href="/admin.html" style="display:none">⚙ Admin</a>
+    <button class="btn btn-logout" onclick="logout()">Salir</button>
+  </div>
+</div>
+
+<div class="content">
+  <div class="dashboard" id="dashboard">
+    <!-- Dynamic metrics here -->
+  </div>
+
+  <div class="filters">
+  <input type="text" class="search-input" id="search" placeholder="Buscar ítem, categoría, área..." oninput="applyFilters()">
+  <div class="filter-group">
+    <button class="fbtn active-all" data-f="all" onclick="setFilter('all',this)">Todos</button>
+    <button class="fbtn" data-f="ok" onclick="setFilter('ok',this)">● Completado</button>
+    <button class="fbtn" data-f="warn" onclick="setFilter('warn',this)">● Incompleto</button>
+    <button class="fbtn" data-f="bad" onclick="setFilter('bad',this)">● No disponible</button>
+  </div>
+  <div class="filter-group">
+    <select class="search-input" id="filter-area" style="min-width:160px; font-size:10px;" onchange="applyFilters()">
+      <option value="">— Todos los Deptos —</option>
+    </select>
+  </div>
+</div>
+
+<div class="content" id="content"></div>
+
+<!-- MODAL -->
+<div class="modal-overlay hidden" id="modal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="modal-title">Ítem</h3>
+      <button class="close-btn" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" id="btn-save" onclick="saveItem()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '/api';
+const TOKEN = localStorage.getItem('token');
+const ROLE = localStorage.getItem('role');
+const USERNAME = localStorage.getItem('username') || '';
+
+if (!TOKEN || !['auditor','admin'].includes(ROLE)) { window.location.href = '/login.html'; }
+
+document.getElementById('tb-user').textContent = USERNAME;
+document.getElementById('tb-role').textContent = ROLE;
+if (ROLE === 'admin') document.getElementById('admin-link').style.display = 'inline-flex';
+
+let itemsMap = {}, catsMap = {}, subsMap = {};
+let allAreas = [];
+let allCats = [];
+let currentFilter = 'all';
+let editingId = null;
+let modalAreas = [];
+
+function h(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function logout() { localStorage.clear(); window.location.href = '/login.html'; }
+
+async function apiCall(method, path, body) {
+  const res = await fetch(API + path, {
+    method,
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+TOKEN},
+    body: body ? JSON.stringify(body) : undefined
+  });
+  if (res.status === 401) { logout(); return; }
+  return res.json();
+}
+
+function formatDate(ts) {
+  if (!ts) return '—';
+  const d = new Date(ts);
+  return `${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${d.getFullYear()}`;
+}
+
+// ── RENDER ────────────────────────────────────────────────────
+
+async function render() {
+  const [items, cats, subs, areas] = await Promise.all([
+    fetch(API+'/items').then(r=>r.json()),
+    fetch(API+'/categories').then(r=>r.json()),
+    fetch(API+'/categories/subcategories/all').then(r=>r.json()),
+    fetch(API+'/areas').then(r=>r.json())
+  ]);
+
+  allAreas = areas;
+  allCats = cats;
+  itemsMap = {}; items.forEach(item => { itemsMap[item._id] = item; });
+  subsMap = {}; subs.forEach(s => { subsMap[s._id] = s; });
+
+  const areaSel = document.getElementById('filter-area');
+  const currentArea = areaSel.value;
+  areaSel.innerHTML = '<option value="">— Todos los Deptos —</option>' + 
+    areas.map(a => `<option value="${a._id}" ${a._id===currentArea?'selected':''}>${h(a.name)}</option>`).join('');
+
+  const total = items.length;
+  const done = items.filter(i=>i.status==='ok').length;
+  document.getElementById('tb-indicator').textContent =
+    `Mostrando ${total} ítems · ${done} completados`;
+
+  if (!items.length) {
+    document.getElementById('content').innerHTML = '<div class="empty">Sin ítems. Crea el primero desde "+ Nuevo ítem".</div>';
+    return;
+  }
+
+  // 1. Initialize catMap with all categories
+  const sortedCats = [...cats].sort((a,b)=>(a.order||0)-(b.order||0));
+  const catMap = {};
+  sortedCats.forEach(c => { catMap[c._id] = { cat:c, groups:{} }; });
+
+  // 2. Pre-populate groups with ALL subcategories
+  Object.values(subsMap).forEach(sub => {
+    const catId = sub.category?._id || sub.category;
+    if (catMap[catId]) {
+      catMap[catId].groups[sub._id] = { sub, items:[] };
+    }
+  });
+
+  // 3. Fill with items
+  items.forEach(item => {
+    let catId = item.category?._id || item.category;
+    if (!catId || !catMap[catId]) {
+      catId = '__none__';
+      if (!catMap[catId]) catMap[catId] = { cat:{_id:'__none__', name:'Sin Clasificar', code:'—'}, groups:{} };
+    }
+    const subId = item.subcategory?._id || item.subcategory || '__none__';
+    if (!catMap[catId].groups[subId]) {
+      catMap[catId].groups[subId] = { sub: subsMap[subId] || item.subcategory, items:[] };
+    }
+    catMap[catId].groups[subId].items.push(item);
+  });
+
+  // 4. Update Dashboard
+  updateDashboard(items);
+
+  let html = '';
+  Object.values(catMap).forEach(({ cat, groups }) => {
+    const allItems = Object.values(groups).flatMap(g=>g.items);
+    const completed = allItems.filter(i=>i.status==='ok').length;
+    const total = allItems.length;
+    const allDone = total > 0 && completed === total;
+
+    // Subcategory cards HTML
+    const groupsHtml = Object.values(groups).map(({ sub, items: gItems }) => {
+      if (!sub) {
+        return gItems.map(item => renderCard(item)).join('');
+      }
+      return renderSubCard(sub, gItems);
+    }).join('');
+
+    html += `<div class="cat-section" data-cat="${cat._id}">
+      <div class="cat-header">
+        <span class="cat-num">${h(cat.code||'')}</span>
+        <span class="cat-name">${h(cat.name)}</span>
+        <span class="cat-badge ${allDone?'done':'partial'}" id="catbadge-${cat._id}">
+          ${completed} / ${total} completados
+        </span>
+      </div>
+      <div style="padding-left:10px; border-left:1px solid var(--border)">
+        ${groupsHtml}
+      </div>
+    </div>`;
+  });
+
+  document.getElementById('content').innerHTML = html;
+  applyFilters();
+}
+
+function updateDashboard(items) {
+  const total = items.length;
+  if (!total) return;
+  const ok = items.filter(i => i.status === 'Completo').length;
+  const warn = items.filter(i => i.status === 'Incompleto').length;
+  const bad = items.filter(i => i.status === 'Faltante').length;
+  const perc = Math.round((ok / total) * 100);
+
+  const dash = document.getElementById('dashboard');
+  if (!dash) return;
+  dash.innerHTML = `
+    <div class="dash-card">
+      <span class="dash-label">Progreso Global</span>
+      <span class="dash-value">${perc}%</span>
+      <div class="dash-progress-bg">
+        <div class="dash-progress-bar ok" style="width: ${perc}%"></div>
+      </div>
+    </div>
+    <div class="dash-card ok">
+      <span class="dash-label">Completados</span>
+      <span class="dash-value">${ok}</span>
+      <span class="dash-label" style="margin-top:auto">${Math.round((ok/total)*100)}% del total</span>
+    </div>
+    <div class="dash-card warn">
+      <span class="dash-label">Incompletos</span>
+      <span class="dash-value">${warn}</span>
+    </div>
+    <div class="dash-card bad">
+      <span class="dash-label">Faltantes</span>
+      <span class="dash-value">${bad}</span>
+    </div>
+  `;
+}
+
+function renderSubCard(sub, items) {
+  if (!sub || typeof sub !== 'object') return items.map(i => renderCard(i)).join('');
+  const labels = { ok:'COMPLETADO', warn:'INCOMPLETO', bad:'NO DISPONIBLE' };
+  const sval = sub.status || 'Incompleto';
+  const status = sval === 'Completo' ? 'ok' : (sval === 'Faltante' ? 'bad' : 'warn');
+  const colors = { ok:'var(--ok)', warn:'var(--warn)', bad:'var(--bad)' };
+  
+  const areaIds = (sub.areas||[]).map(a=>a._id||a);
+  const areaPillsHtml = (() => {
+    const assigned = (sub.areas||[]).map(a => {
+      const id = a._id||a;
+      const name = a.name || (allAreas.find(x=>x._id===id)?.name||id);
+      return `<span class="area-pill-assigned">${h(name)}
+        <button title="Quitar" onclick="removeSubArea(event,'${sub._id}','${id}')">×</button>
+      </span>`;
+    }).join('');
+    const unassigned = allAreas.filter(a => !areaIds.includes(a._id)).map(a =>
+      `<button class="area-pill-add" onclick="addSubArea(event,'${sub._id}','${a._id}')">${h(a.name)}</button>`
+    ).join('');
+    return (assigned||unassigned) ? assigned+unassigned : '<span class="area-pill-none">Sin áreas asignadas</span>';
+  })();
+
+  return `<div class="sub-card" id="subcard-${sub._id}" data-status="${status}" data-areas="${areaIds.join(',')}">
+    <div class="sub-header" onclick="toggleSub('${sub._id}')">
+      <span class="sub-stripe" style="background:${colors[status]}"></span>
+      <div class="sub-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div>
+      <span class="sub-name-text">${sub.code ? `<span style="color:var(--accent);margin-right:8px">${h(sub.code)}</span>` : ''}${h(sub.name)}</span>
+      <div class="item-header-right">
+        <span class="status-badge badge-${status}" id="subbadge-${sub._id}">${labels[status]}</span>
+        <span class="expand-icon" id="subicon-${sub._id}">∨</span>
+      </div>
+    </div>
+    <div class="sub-body" id="subbody-${sub._id}">
+      <div class="section-lbl">Auditando Carpeta / Subcategoría</div>
+      <div class="status-btns" style="margin-bottom:18px">
+        <button class="sbtn sbtn-ok ${status==='ok'?'on':''}" onclick="changeSubStatus(event,'${sub._id}','ok')">● Completado</button>
+        <button class="sbtn sbtn-warn ${status==='warn'?'on':''}" onclick="changeSubStatus(event,'${sub._id}','warn')">● Incompleto</button>
+        <button class="sbtn sbtn-bad ${status==='bad'?'on':''}" onclick="changeSubStatus(event,'${sub._id}','bad')">● No disponible</button>
+      </div>
+
+      <div class="section-lbl">Departamentos asignados a la Carpeta</div>
+      <div class="area-pills" id="subareapills-${sub._id}" style="margin-bottom:24px">${areaPillsHtml}</div>
+      
+      <div class="section-lbl">Ítems contenidos en esta sección</div>
+      <div class="items-list">
+        ${items.length ? items.map(item => renderCard(item)).join('') : '<div style="padding:10px; font-size:11px; color:var(--muted); font-style:italic">Esta carpeta no contiene ítems individuales todavía.</div>'}
+      </div>
+      
+      <div style="margin-top:16px; display:flex; gap:8px;">
+        <button class="btn btn-sm" onclick="event.stopPropagation();openSubModal('${sub._id}')">Configurar Carpeta</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderCard(item) {
+  const labels = { ok:'COMPLETADO', warn:'INCOMPLETO', bad:'NO DISPONIBLE' };
+  const status = item.status==='Completo'?'ok':(item.status==='Faltante'?'bad':'warn');
+  const colors = { ok:'var(--ok)', warn:'var(--warn)', bad:'var(--bad)' };
+  const areaIds = (item.areas||[]).map(a=>a._id||a);
+  const assignedAreas = (item.areas||[]).filter(a=>a._id||typeof a==='object');
+
+  const areaPillsHtml = (() => {
+    const assigned = (item.areas||[]).map(a => {
+      const id = a._id||a;
+      const name = a.name || (allAreas.find(x=>x._id===id)?.name||id);
+      return `<span class="area-pill-assigned">${h(name)}
+        <button title="Quitar" onclick="removeArea(event,'${item._id}','${id}')">×</button>
+      </span>`;
+    }).join('');
+    const unassigned = allAreas.filter(a => !areaIds.includes(a._id)).map(a =>
+      `<button class="area-pill-add" onclick="addArea(event,'${item._id}','${a._id}')">${h(a.name)}</button>`
+    ).join('');
+    return (assigned||unassigned) ? assigned+unassigned : '<span class="area-pill-none">Sin áreas asignadas</span>';
+  })();
+
+  return `<div class="item-card" id="card-${item._id}" data-status="${status}" data-name="${h(item.name)}" data-areas="${areaIds.join(',')}">
+    <div class="item-header" onclick="toggleCard('${item._id}')">
+      <span class="item-stripe" style="background:${colors[status]}"></span>
+      <span class="item-tag">${h(item.tag||'')}</span>
+      <span class="item-name">${h(item.name)}</span>
+      <div class="item-header-right">
+        <span class="status-badge badge-${status}" id="badge-${item._id}">${labels[status]}</span>
+        <span class="expand-icon" id="icon-${item._id}">∨</span>
+      </div>
+    </div>
+    <div class="item-body" id="body-${item._id}">
+      <div class="item-detail">${item.detail ? h(item.detail) : '<span style="color:var(--muted);font-style:italic">Sin detalle.</span>'}</div>
+      <div class="section-lbl">Departamentos asignados</div>
+      <div class="area-pills" id="areapills-${item._id}">${areaPillsHtml}</div>
+      <div class="section-lbl">Cambiar estado del ítem</div>
+      <div class="status-btns" id="sbtns-${item._id}">
+        <button class="sbtn sbtn-ok ${status==='ok'?'on':''}" onclick="changeStatus(event,'${item._id}','ok')">● Completado</button>
+        <button class="sbtn sbtn-warn ${status==='warn'?'on':''}" onclick="changeStatus(event,'${item._id}','warn')">● Incompleto</button>
+        <button class="sbtn sbtn-bad ${status==='bad'?'on':''}" onclick="changeStatus(event,'${item._id}','bad')">● No disponible</button>
+      </div>
+      <div class="item-footer">
+        <button class="btn btn-sm" onclick="event.stopPropagation();openEdit('${item._id}')">Editar</button>
+        ${ROLE==='admin' ? `<button class="btn btn-sm btn-danger" onclick="event.stopPropagation();delItem('${item._id}')">Borrar</button>` : ''}
+        <span class="item-meta">ID: ...${item._id.slice(-6)} &nbsp; Actualizado: ${formatDate(item.updatedAt)}</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── TOGGLE CARD ───────────────────────────────────────────────
+
+function toggleCard(id) {
+  const body = document.getElementById('body-'+id);
+  const icon = document.getElementById('icon-'+id);
+  if (!body) return;
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  icon.classList.toggle('open', !isOpen);
+}
+
+function toggleSub(id) {
+  const body = document.getElementById('subbody-'+id);
+  const icon = document.getElementById('subicon-'+id);
+  if (!body) return;
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  icon.classList.toggle('open', !isOpen);
+}
+
+function openSubModal(id) {
+  const sub = subsMap[id];
+  if (!sub) return;
+  alert('Carpeta: ' + sub.name + '\n(Edición avanzada disponible en el Gestor Maestro)');
+}
+
+// ── FILTERS ───────────────────────────────────────────────────
+
+function setFilter(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll('.fbtn').forEach(b => {
+    b.className = 'fbtn';
+    if (b.dataset.f === f) b.classList.add('active-'+f);
+  });
+  applyFilters();
+}
+
+function applyFilters() {
+  const q = (document.getElementById('search')?.value||'').toLowerCase().trim();
+  const areaId = document.getElementById('filter-area')?.value || '';
+  const isSearching = !!q || !!areaId || currentFilter !== 'all';
+
+  document.querySelectorAll('.cat-section').forEach(sec => {
+    let secHasVisible = false;
+    
+    sec.querySelectorAll('.sub-card').forEach(subCard => {
+      const subId = subCard.id.replace('subcard-', '');
+      const subAreas = (subCard.dataset.areas || '').split(',');
+      
+      const subStatusMatch = currentFilter === 'all' || subCard.dataset.status === currentFilter;
+      const subAreaMatch = !areaId || subAreas.includes(areaId);
+      const subTextMatch = !q || subCard.innerText.toLowerCase().includes(q);
+
+      let itemsVisibleCount = 0;
+      subCard.querySelectorAll('.item-card').forEach(itemCard => {
+        const itemAreas = (itemCard.dataset.areas || '').split(',');
+        const iStatusMatch = currentFilter === 'all' || itemCard.dataset.status === currentFilter;
+        const iAreaMatch = !areaId || itemAreas.includes(areaId);
+        const iTextMatch = !q || itemCard.innerText.toLowerCase().includes(q);
+        
+        const iShow = iStatusMatch && iAreaMatch && iTextMatch;
+        itemCard.style.display = iShow ? '' : 'none';
+        if (iShow) itemsVisibleCount++;
+      });
+
+      const subVisible = !isSearching || (subStatusMatch && subAreaMatch && subTextMatch) || (itemsVisibleCount > 0);
+      subCard.style.display = subVisible ? '' : 'none';
+      if (subVisible) secHasVisible = true;
+    });
+
+    sec.querySelectorAll(':scope > div > .item-card').forEach(itemCard => {
+      const itemAreas = (itemCard.dataset.areas || '').split(',');
+      const iStatusMatch = currentFilter === 'all' || itemCard.dataset.status === currentFilter;
+      const iAreaMatch = !areaId || itemAreas.includes(areaId);
+      const iTextMatch = !q || itemCard.innerText.toLowerCase().includes(q);
+      
+      const iShow = !isSearching || (iStatusMatch && iAreaMatch && iTextMatch);
+      itemCard.style.display = iShow ? '' : 'none';
+      if (iShow) secHasVisible = true;
+    });
+
+    sec.style.display = (!isSearching || secHasVisible) ? '' : 'none';
+  });
+}
+
+// ── STATUS CHANGE ─────────────────────────────────────────────
+
+async function changeStatus(event, id, status) {
+  event.stopPropagation();
+  const item = itemsMap[id];
+  if (!item) return;
+  const res = await apiCall('PUT', '/items/'+id, {
+    name: item.name,
+    category: item.category?._id || item.category,
+    subcategory: (item.subcategory?._id || item.subcategory) || null,
+    areas: (item.areas||[]).map(a=>a._id||a),
+    tag: item.tag||'', detail: item.detail||'',
+    prev_observation: item.prev_observation||'',
+    deadline: item.deadline||null, status
+  });
+  if (res?.error) return alert(res.error);
+  itemsMap[id].status = status;
+
+  const colors = { ok:'var(--ok)', warn:'var(--warn)', bad:'var(--bad)' };
+  const labels = { ok:'COMPLETADO', warn:'INCOMPLETO', bad:'NO DISPONIBLE' };
+  const card = document.getElementById('card-'+id);
+  if (!card) return;
+
+  card.dataset.status = status;
+  card.querySelector('.item-stripe').style.background = colors[status];
+  const badge = document.getElementById('badge-'+id);
+  badge.textContent = labels[status];
+  badge.className = 'status-badge badge-'+status;
+  document.querySelectorAll(`#sbtns-${id} .sbtn`).forEach(b => b.classList.remove('on'));
+  document.querySelector(`#sbtns-${id} .sbtn-${status}`).classList.add('on');
+
+  // Update category badge
+  const catId = item.category?._id || item.category;
+  const catSec = document.querySelector(`.cat-section[data-cat="${catId}"]`);
+  if (catSec) {
+    const catItems = Object.values(itemsMap).filter(i=>(i.category?._id||i.category)===catId);
+    const comp = catItems.filter(i=>i.status==='ok').length;
+    const tot = catItems.length;
+    const cb = document.getElementById('catbadge-'+catId);
+    if (cb) {
+      cb.textContent = `${comp} / ${tot} completados`;
+      cb.className = 'cat-badge '+(comp===tot?'done':'partial');
+    }
+  }
+  applyFilters();
+}
+
+async function changeSubStatus(event, id, status) {
+  event.stopPropagation();
+  const labels = { ok:'COMPLETADO', warn:'INCOMPLETO', bad:'NO DISPONIBLE' };
+  const colors = { ok:'var(--ok)', warn:'var(--warn)', bad:'var(--bad)' };
+  const res = await apiCall('PUT', '/categories/subcategories/'+id, {
+    status: status === 'ok' ? 'Completo' : (status === 'bad' ? 'Faltante' : 'Incompleto')
+  });
+  if (res?.error) return alert(res.error);
+  const card = document.getElementById('subcard-'+id);
+  if (card) {
+    card.dataset.status = status;
+    card.querySelector('.sub-stripe').style.background = colors[status];
+    const badge = document.getElementById('subbadge-'+id);
+    badge.textContent = labels[status];
+    badge.className = 'status-badge badge-'+status;
+    card.querySelectorAll('.status-btns .sbtn').forEach(b => b.classList.remove('on'));
+    const btnClass = status === 'ok' ? 'sbtn-ok' : (status === 'bad' ? 'sbtn-bad' : 'sbtn-warn');
+    card.querySelector('.'+btnClass).classList.add('on');
+  }
+}
+
+// ── AREA INLINE ───────────────────────────────────────────────
+
+async function addArea(event, itemId, areaId) {
+  event.stopPropagation();
+  const item = itemsMap[itemId];
+  if (!item) return;
+  const currentAreas = (item.areas||[]).map(a=>a._id||a);
+  if (currentAreas.includes(areaId)) return;
+  const res = await apiCall('PUT', '/items/'+itemId, {
+    name:item.name, category:item.category?._id||item.category,
+    subcategory:(item.subcategory?._id||item.subcategory)||null,
+    tag:item.tag||'', detail:item.detail||'', status:item.status,
+    prev_observation:item.prev_observation||'', deadline:item.deadline||null,
+    areas:[...currentAreas, areaId]
+  });
+  if (res?.error) return alert(res.error);
+  // Update local
+  const areaObj = allAreas.find(a=>a._id===areaId);
+  itemsMap[itemId].areas = [...(item.areas||[]), areaObj||{_id:areaId,name:areaId}];
+  refreshAreaPills(itemId);
+}
+
+async function removeArea(event, itemId, areaId) {
+  event.stopPropagation();
+  const item = itemsMap[itemId];
+  if (!item) return;
+  const newAreas = (item.areas||[]).map(a=>a._id||a).filter(id=>id!==areaId);
+  const res = await apiCall('PUT', '/items/'+itemId, {
+    name:item.name, category:item.category?._id||item.category,
+    subcategory:(item.subcategory?._id||item.subcategory)||null,
+    tag:item.tag||'', detail:item.detail||'', status:item.status,
+    prev_observation:item.prev_observation||'', deadline:item.deadline||null,
+    areas:newAreas
+  });
+  if (res?.error) return alert(res.error);
+  itemsMap[itemId].areas = (item.areas||[]).filter(a=>(a._id||a)!==areaId);
+  refreshAreaPills(itemId);
+}
+
+async function removeSubArea(event, subId, areaId) {
+  event.stopPropagation();
+  const sub = subsMap[subId];
+  if (!sub) return;
+  const newAreas = (sub.areas||[]).map(a=>a._id||a).filter(id=>id!==areaId);
+  const res = await apiCall('PUT', '/categories/subcategories/'+subId, {
+    areas: newAreas
+  });
+  if (res?.error) return alert(res.error);
+  subsMap[subId].areas = (sub.areas||[]).filter(a=>(a._id||a)!==areaId);
+  refreshSubAreaPills(subId);
+}
+
+async function addSubArea(event, subId, areaId) {
+  event.stopPropagation();
+  const sub = subsMap[subId];
+  if (!sub) return;
+  const currentAreas = (sub.areas||[]).map(a=>a._id||a);
+  if (currentAreas.includes(areaId)) return;
+  const res = await apiCall('PUT', '/categories/subcategories/'+subId, {
+    areas: [...currentAreas, areaId]
+  });
+  if (res?.error) return alert(res.error);
+  const areaObj = allAreas.find(a=>a._id===areaId);
+  subsMap[subId].areas = [...(sub.areas||[]), areaObj||{_id:areaId,name:areaId}];
+  refreshSubAreaPills(subId);
+}
+
+function refreshSubAreaPills(subId) {
+  const sub = subsMap[subId];
+  const container = document.getElementById('subareapills-'+subId);
+  if (!container) return;
+  const areaIds = (sub.areas||[]).map(a=>a._id||a);
+  const assigned = (sub.areas||[]).map(a => {
+    const id = a._id||a;
+    const name = a.name || (allAreas.find(x=>x._id===id)?.name||id);
+    return `<span class="area-pill-assigned">${h(name)}
+      <button title="Quitar" onclick="removeSubArea(event,'${subId}','${id}')">×</button>
+    </span>`;
+  }).join('');
+  const unassigned = allAreas.filter(a=>!areaIds.includes(a._id)).map(a =>
+    `<button class="area-pill-add" onclick="addSubArea(event,'${subId}','${a._id}')">${h(a.name)}</button>`
+  ).join('');
+  container.innerHTML = (assigned||unassigned) ? assigned+unassigned : '<span class="area-pill-none">Sin áreas asignadas</span>';
+}
+
+function refreshAreaPills(itemId) {
+  const item = itemsMap[itemId];
+  const container = document.getElementById('areapills-'+itemId);
+  if (!container) return;
+  const areaIds = (item.areas||[]).map(a=>a._id||a);
+  const assigned = (item.areas||[]).map(a => {
+    const id = a._id||a;
+    const name = a.name || (allAreas.find(x=>x._id===id)?.name||id);
+    return `<span class="area-pill-assigned">${h(name)}
+      <button title="Quitar" onclick="removeArea(event,'${itemId}','${id}')">×</button>
+    </span>`;
+  }).join('');
+  const unassigned = allAreas.filter(a=>!areaIds.includes(a._id)).map(a =>
+    `<button class="area-pill-add" onclick="addArea(event,'${itemId}','${a._id}')">${h(a.name)}</button>`
+  ).join('');
+  container.innerHTML = (assigned||unassigned) ? assigned+unassigned : '<span class="area-pill-none">Sin áreas asignadas</span>';
+}
+
+// ── DELETE ────────────────────────────────────────────────────
+
+async function delItem(id) {
+  if (!confirm('¿Borrar este ítem?')) return;
+  await apiCall('DELETE', '/items/'+id);
+  render();
+}
+
+// ── MODAL ITEM ────────────────────────────────────────────────
+
+async function openNew() { openItemModal(null); }
+function openEdit(id) { openItemModal(itemsMap[id]); }
+
+async function openItemModal(item) {
+  editingId = item?._id || null;
+  const [cats, subs, areas] = await Promise.all([
+    fetch(API+'/categories').then(r=>r.json()),
+    fetch(API+'/categories/subcategories/all').then(r=>r.json()),
+    fetch(API+'/areas').then(r=>r.json())
+  ]);
+  allAreas = areas;
+  modalAreas = (item?.areas||[]).map(a=>a._id||a);
+
+  document.getElementById('modal-title').textContent = item ? 'Editar ítem' : 'Nuevo ítem';
+  document.getElementById('modal-body').innerHTML = `
+    <div class="field"><label>Nombre *</label><input id="f-name" value="${h(item?.name||'')}"></div>
+    <div class="field"><label>Categoría *</label>
+      <select id="f-cat" onchange="loadSubs(this.value,'${item?.subcategory?._id||item?.subcategory||''}')">
+        <option value="">— Seleccionar —</option>
+        ${cats.map(c=>`<option value="${c._id}" ${(item?.category?._id||item?.category)===c._id?'selected':''}>${h(c.name)}</option>`).join('')}
+      </select>
+    </div>
+    <div class="field"><label>Subcategoría</label>
+      <select id="f-sub">
+        <option value="">— Ninguna —</option>
+        ${subs.filter(s=>(s.category?._id||s.category)===(item?.category?._id||item?.category))
+          .map(s=>`<option value="${s._id}" ${(item?.subcategory?._id||item?.subcategory)===s._id?'selected':''}>${h(s.name)}</option>`).join('')}
+      </select>
+    </div>
+    <div class="field"><label>Estado</label>
+      <select id="f-status">
+        <option value="ok" ${item?.status==='ok'?'selected':''}>Completado</option>
+        <option value="warn" ${(!item||item?.status==='warn')?'selected':''}>Incompleto</option>
+        <option value="bad" ${item?.status==='bad'?'selected':''}>No disponible</option>
+      </select>
+    </div>
+    <div class="field"><label>Etiqueta</label><input id="f-tag" value="${h(item?.tag||'')}"></div>
+    <div class="field"><label>Detalle</label><textarea id="f-detail">${h(item?.detail||'')}</textarea></div>
+    <div class="field"><label>Observación previa</label><textarea id="f-prev">${h(item?.prev_observation||'')}</textarea></div>
+    <div class="field"><label>Fecha límite</label><input type="date" id="f-deadline" value="${item?.deadline||''}"></div>
+    <div class="field"><label>Áreas</label>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <select id="area-sel" style="flex:1;background:var(--surface2);border:1px solid var(--border2);border-radius:7px;padding:8px 10px;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;outline:none">
+          <option value="">— Agregar área —</option>
+          ${areas.map(a=>`<option value="${a._id}">${h(a.name)}</option>`).join('')}
+        </select>
+        <button class="btn" onclick="modalAddArea()">+</button>
+      </div>
+      <div class="chips" id="modal-chips">${renderModalChips(modalAreas, areas)}</div>
+    </div>`;
+  showModal();
+}
+
+function renderModalChips(ids, areas) {
+  return ids.map(id=>{
+    const a = areas.find(x=>x._id===id)||{_id:id,name:id};
+    return `<span class="chip">${h(a.name)}<button onclick="modalRemoveArea('${id}')">×</button></span>`;
+  }).join('');
+}
+
+function modalAddArea() {
+  const sel = document.getElementById('area-sel');
+  const id = sel.value; if (!id||modalAreas.includes(id)) return;
+  modalAreas.push(id);
+  document.getElementById('modal-chips').innerHTML = renderModalChips(modalAreas, allAreas);
+}
+
+function modalRemoveArea(id) {
+  modalAreas = modalAreas.filter(x=>x!==id);
+  document.getElementById('modal-chips').innerHTML = renderModalChips(modalAreas, allAreas);
+}
+
+async function loadSubs(catId, currentSubId) {
+  const sel = document.getElementById('f-sub');
+  if (!catId) { sel.innerHTML = '<option value="">— Ninguna —</option>'; return; }
+  const subs = await fetch(API+'/categories/'+catId+'/subcategories').then(r=>r.json());
+  sel.innerHTML = '<option value="">— Ninguna —</option>' +
+    subs.map(s=>`<option value="${s._id}" ${s._id===currentSubId?'selected':''}>${h(s.name)}</option>`).join('');
+}
+
+async function saveItem() {
+  const btn = document.getElementById('btn-save');
+  btn.disabled = true;
+  const body = {
+    name: document.getElementById('f-name').value.trim(),
+    category: document.getElementById('f-cat').value,
+    subcategory: document.getElementById('f-sub').value || null,
+    status: document.getElementById('f-status').value,
+    tag: document.getElementById('f-tag').value.trim(),
+    detail: document.getElementById('f-detail').value.trim(),
+    prev_observation: document.getElementById('f-prev').value.trim(),
+    deadline: document.getElementById('f-deadline').value || null,
+    areas: modalAreas
+  };
+  if (!body.name) { alert('El nombre es obligatorio'); btn.disabled=false; return; }
+  if (!body.category) { alert('Selecciona una categoría'); btn.disabled=false; return; }
+  const res = editingId
+    ? await apiCall('PUT', '/items/'+editingId, body)
+    : await apiCall('POST', '/items', body);
+  if (res?.error) { alert(res.error); btn.disabled=false; return; }
+  closeModal();
+  render();
+  btn.disabled = false;
+}
+
+function showModal() { document.getElementById('modal').classList.remove('hidden'); }
+function closeModal() { document.getElementById('modal').classList.add('hidden'); }
+document.getElementById('modal').addEventListener('click', e => { if (e.target===e.currentTarget) closeModal(); });
+
+render();
+</script>
+</body>
+</html>
