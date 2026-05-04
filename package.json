@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "seed": "node db/init.js",
+    "seed:mongo": "node db/seed_mongo_data.js",
     "start": "node server.js",
     "dev": "node server.js"
   },

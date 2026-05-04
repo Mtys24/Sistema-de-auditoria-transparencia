@@ -21,7 +21,14 @@ app.use('/api/notify', require('./routes/notify'));
 async function start() {
   try {
     await connectMongo();
-    await initPostgres();
+    
+    // Intentar conectar a PostgreSQL (opcional)
+    try {
+      await initPostgres();
+    } catch (pgError) {
+      console.warn('Advertencia: No se pudo conectar a PostgreSQL. Continuando solo con MongoDB...');
+    }
+    
     const PORT = process.env.PORT || 3000;
     app.listen(PORT, () => console.log(`Servidor en http://localhost:${PORT}`));
   } catch (e) {
