@@ -244,6 +244,12 @@
 .dash-progress-bg{height:8px; background:rgba(255,255,255,0.05); border-radius:4px; overflow:hidden; margin-top:10px;}
 .dash-progress-bar{height:100%; background:var(--accent); transition:width 1s cubic-bezier(0.16, 1, 0.3, 1);}
 .dash-progress-bar.ok{background:var(--ok);}
+
+.area-emails-block{border:1px solid var(--border2);border-radius:8px;padding:14px;background:var(--surface2);}
+.area-emails-block .block-title{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:12px;}
+.area-email-row{margin-bottom:10px;}
+.area-email-row:last-child{margin-bottom:0;}
+.area-email-row label{font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;display:block;}
 </style>
 </head>
 <body>
@@ -323,7 +329,7 @@ let ROLE = localStorage.getItem('role');
 let currentPage = 'dash';
 let editingId = null;
 let modalType = '';
-let categories = [], subcategories = [], areas = [], selectedAreas = [];
+let categories = [], subcategories = [], areas = [], selectedAreas = [], currentAreaEmails = {};
 
 if (!TOKEN || ROLE !== 'admin') { window.location.href = '/login.html'; }
 document.getElementById('sb-user').textContent = localStorage.getItem('username') || '';
@@ -369,15 +375,19 @@ function goPage(page) {
   render();
 }
 
-function saveGlobalSettings() {
+async function saveGlobalSettings() {
   const date = document.getElementById('global-deadline').value;
   const cc = document.getElementById('global-cc').value.trim();
   localStorage.setItem('globalCorrectionDeadline', date);
   localStorage.setItem('globalDefaultCC', cc);
+  await Promise.all([
+    api('POST', '/config/global_deadline', { value: date }),
+    api('POST', '/config/global_cc', { value: cc })
+  ]);
   alert('Configuración global guardada');
 }
 
-function sendNotification(id, type) {
+async function sendNotification(id, type) {
   let target = null;
   if (type === 'item') target = itemsMap[id];
   else if (type === 'cat') target = catsMap[id];
@@ -385,26 +395,29 @@ function sendNotification(id, type) {
 
   if (!target) return;
 
-  const emails = target.responsible_emails || '';
   const cc = localStorage.getItem('globalDefaultCC') || '';
   const deadline = localStorage.getItem('globalCorrectionDeadline') || 'No definido';
+  const areaEmailMap = target.area_emails || {};
 
-  if (!emails) {
+  const areaLines = (target.areas || []).map(a => {
+    const areaId = String(a._id || a);
+    const areaName = a.name || areaId;
+    const emails = areaEmailMap[areaId] || '';
+    return emails ? { name: areaName, emails } : null;
+  }).filter(Boolean);
+
+  if (!areaLines.length) {
     alert('Esta ' + type + ' no tiene correos de responsables asignados.');
     return;
   }
 
-  const subject = `Recordatorio Subsanación: ${target.name}`;
-  const body = `Estimado responsable,\n\nSe recuerda que la fecha límite para subsanar observaciones en "${target.name}" es el ${deadline}.\n\nSaludos,\nSistema de Auditoría`;
+  const destinatarios = areaLines.map(a => `  • ${a.name}: ${a.emails}`).join('\n');
+  const confirmMsg = `¿Enviar notificación por correo?\n\nDESTINATARIOS POR ÁREA:\n${destinatarios}\n\nCC: ${cc || '(ninguno)'}\nPLAZO: ${deadline}`;
+  if (!confirm(confirmMsg)) return;
 
-  console.log('--- ENVIANDO NOTIFICACIÓN ---');
-  console.log('PARA:', emails);
-  console.log('CC:', cc);
-  console.log('ASUNTO:', subject);
-  
-  const confirmMsg = `¿Enviar notificación por correo?\n\nPARA: ${emails}\nCC: ${cc}\n\nPLAZO: ${deadline}`;
-  if (confirm(confirmMsg)) {
-    alert('Notificación simulada enviada correctamente a: ' + emails);
+  const res = await api('POST', '/notify', { id, type });
+  if (res?.ok) {
+    alert('✅ Correos enviados correctamente:\n\n' + res.sent.join('\n'));
   }
 }
 
@@ -484,7 +497,8 @@ async function saveSmtp() {
 }
 
 async function testSmtp() {
-  alert('🛠️ Función de prueba en desarrollo. Las credenciales se han guardado.');
+  const res = await api('POST', '/notify/test');
+  if (res?.ok) alert('✅ ' + res.message);
 }
 
 let itemsMap = {}, catsMap = {}, subsMap = {}, usersMap = {};
@@ -545,16 +559,23 @@ async function renderDash() {
 
 async function renderMaster() {
   document.getElementById('topbar-actions').innerHTML = '';
-  const [items, cats, subs, areasAll] = await Promise.all([
+  const [items, cats, subs, areasAll, cfgDeadline, cfgCC] = await Promise.all([
     fetch(API+'/items').then(r=>r.json()),
     fetch(API+'/categories').then(r=>r.json()),
     fetch(API+'/categories/subcategories/all').then(r=>r.json()),
-    fetch(API+'/areas').then(r=>r.json())
+    fetch(API+'/areas').then(r=>r.json()),
+    api('GET', '/config/global_deadline').catch(()=>null),
+    api('GET', '/config/global_cc').catch(()=>null)
   ]);
   categories = cats; subcategories = subs; areas = areasAll;
   itemsMap = {}; items.forEach(i => itemsMap[i._id] = i);
   catsMap = {}; cats.forEach(c => catsMap[c._id] = c);
   subsMap = {}; subs.forEach(s => subsMap[s._id] = s);
+
+  const deadlineVal = cfgDeadline?.value || localStorage.getItem('globalCorrectionDeadline') || '';
+  const ccVal = cfgCC?.value || localStorage.getItem('globalDefaultCC') || '';
+  if (deadlineVal) localStorage.setItem('globalCorrectionDeadline', deadlineVal);
+  if (ccVal) localStorage.setItem('globalDefaultCC', ccVal);
 
   let html = `
     <div class="master-wrap">
@@ -564,11 +585,11 @@ async function renderMaster() {
           <div style="display:flex; align-items:center; gap:10px; margin-top:10px;">
             <div style="flex:1">
               <label style="font-size:10px; color:var(--muted); text-transform:uppercase; display:block; margin-bottom:4px;">Fecha Límite Subsanación:</label>
-              <input type="date" id="global-deadline" value="${localStorage.getItem('globalCorrectionDeadline') || ''}" style="background:var(--surface2); border:1px solid var(--border2); color:var(--text); padding:5px 10px; border-radius:6px; font-family:inherit; font-size:12px; outline:none; width:100%;">
+              <input type="date" id="global-deadline" value="${h(deadlineVal)}" style="background:var(--surface2); border:1px solid var(--border2); color:var(--text); padding:5px 10px; border-radius:6px; font-family:inherit; font-size:12px; outline:none; width:100%;">
             </div>
             <div style="flex:1">
               <label style="font-size:10px; color:var(--muted); text-transform:uppercase; display:block; margin-bottom:4px;">Enviar Copia (CC) por Defecto:</label>
-              <input type="text" id="global-cc" value="${localStorage.getItem('globalDefaultCC') || ''}" placeholder="email1@ejemplo.com, email2..." style="background:var(--surface2); border:1px solid var(--border2); color:var(--text); padding:5px 10px; border-radius:6px; font-family:inherit; font-size:12px; outline:none; width:100%;">
+              <input type="text" id="global-cc" value="${h(ccVal)}" placeholder="email1@ejemplo.com, email2..." style="background:var(--surface2); border:1px solid var(--border2); color:var(--text); padding:5px 10px; border-radius:6px; font-family:inherit; font-size:12px; outline:none; width:100%;">
             </div>
             <button class="btn btn-sm" style="margin-top:20px;" onclick="saveGlobalSettings()">Guardar Configuración</button>
           </div>
@@ -994,6 +1015,7 @@ async function openItemModal(item, preCatId, preSubId) {
   editingId = item?._id || null;
   modalType = 'item';
   selectedAreas = (item?.areas||[]).map(a=>a._id||a);
+  currentAreaEmails = (item?.area_emails && typeof item.area_emails === 'object') ? item.area_emails : {};
 
   const curCatId = preCatId || item?.category?._id || item?.category || '';
   const curSubId = preSubId || item?.subcategory?._id || item?.subcategory || '';
@@ -1014,7 +1036,7 @@ async function openItemModal(item, preCatId, preSubId) {
           .map(s=>`<option value="${s._id}" ${curSubId==String(s._id)?'selected':''}>${h(s.name)}</option>`).join('')}
       </select>
     </div>
-    
+
     <div class="field"><label>Estado</label>
       <div class="status-btns-row" id="status-group">
         <button class="sbtn sbtn-ok ${(!item || item.status==='Completo')?'on':''}" onclick="setStatus('Completo')">Completo</button>
@@ -1034,7 +1056,9 @@ async function openItemModal(item, preCatId, preSubId) {
       </div>
     </div>
 
-    <div class="field"><label>Emails Responsables (separados por coma)</label><input id="f-emails" value="${h(item?.responsible_emails||'')}" placeholder="ejemplo@correo.com"></div>
+    <div id="area-emails-container">
+      ${renderAreaEmailsHTML(selectedAreas, currentAreaEmails)}
+    </div>
 
     <div class="field"><label>Etiqueta (Opcional)</label><input id="f-tag" value="${h(item?.tag||'')}"></div>
     <div class="field"><label>Detalle</label><textarea id="f-detail">${h(item?.detail||'')}</textarea></div>
@@ -1053,15 +1077,44 @@ function setStatus(val) {
   if (val==='No disponible') group.querySelector('.sbtn-na').classList.add('on');
 }
 
+function renderAreaEmailsHTML(selAreas, emailsMap) {
+  if (!selAreas || selAreas.length === 0) return '';
+  const mapObj = (emailsMap && typeof emailsMap === 'object' && !Array.isArray(emailsMap)) ? emailsMap : {};
+  const rows = selAreas.map(areaId => {
+    const area = areas.find(a => String(a._id) === String(areaId));
+    const areaName = area?.name || areaId;
+    const val = mapObj[String(areaId)] || '';
+    return `<div class="area-email-row">
+      <label>${h(areaName)}</label>
+      <input class="field input" id="ae-${areaId}" value="${h(val)}" placeholder="email@correo.com">
+    </div>`;
+  }).join('');
+  return `<div class="field"><div class="area-emails-block">
+    <span class="block-title">Emails por Área (separados por coma)</span>${rows}
+  </div></div>`;
+}
+
 function toggleArea(id) {
+  // Flush current visible inputs into the persistent store before any change
+  selectedAreas.forEach(aid => {
+    const inp = document.getElementById('ae-' + aid);
+    if (inp) currentAreaEmails[aid] = inp.value;
+  });
+
   const idx = selectedAreas.indexOf(String(id));
-  const btn = document.getElementById('apill-'+id);
+  const btn = document.getElementById('apill-' + id);
   if (idx === -1) {
     selectedAreas.push(String(id));
     btn.classList.add('on');
   } else {
     selectedAreas.splice(idx, 1);
     btn.classList.remove('on');
+  }
+
+  const container = document.getElementById('area-emails-container');
+  if (container) {
+    // currentAreaEmails keeps values for ALL areas (selected or not)
+    container.innerHTML = renderAreaEmailsHTML(selectedAreas, currentAreaEmails);
   }
 }
 
@@ -1157,13 +1210,14 @@ async function openSubModal(sub) {
   editingId = sub?._id || null;
   modalType = 'sub';
   selectedAreas = (sub?.areas||[]).map(a=>a._id||a);
-  
+  currentAreaEmails = (sub?.area_emails && typeof sub.area_emails === 'object') ? sub.area_emails : {};
+
   const cats = await fetch(API+'/categories').then(r=>r.json());
   categories = cats;
-  
+
   const parentCatId = sub?.category?._id || sub?.category || '';
   let nextOrder = 1;
-  
+
   if (sub?._id) {
     nextOrder = sub.order || 0;
   } else if (parentCatId) {
@@ -1195,7 +1249,6 @@ async function openSubModal(sub) {
         <input type="hidden" id="f-status" value="${sub?.status || 'Incompleto'}">
       </div>
     </div>
-    <div class="field"><label>Emails Responsables (separados por coma)</label><input id="f-emails" value="${h(sub?.responsible_emails||'')}" placeholder="ejemplo@correo.com"></div>
     <div class="field"><label>Áreas (Click para asignar)</label>
       <div class="area-pills" style="margin-top:8px">
         ${areas.map(a => {
@@ -1203,6 +1256,9 @@ async function openSubModal(sub) {
           return `<button class="area-pill-a ${active?'on':''}" id="apill-${a._id}" onclick="toggleArea('${a._id}')">${h(a.name)}</button>`;
         }).join('')}
       </div>
+    </div>
+    <div id="area-emails-container">
+      ${renderAreaEmailsHTML(selectedAreas, currentAreaEmails)}
     </div>`;
   showModal();
 }
@@ -1282,6 +1338,17 @@ async function save() {
 }
 
 async function saveItem() {
+  // Flush visible inputs into persistent store, then save ALL area emails (active + inactive)
+  selectedAreas.forEach(aid => {
+    const inp = document.getElementById('ae-' + aid);
+    if (inp) currentAreaEmails[aid] = inp.value.trim();
+  });
+  const area_emails = { ...currentAreaEmails };
+  // responsible_emails = union of SELECTED areas only (who actually receives the email)
+  const responsible_emails = [...new Set(
+    selectedAreas.flatMap(aid => (currentAreaEmails[aid] || '').split(',').map(e => e.trim()).filter(Boolean))
+  )].join(', ');
+
   const body = {
     name: document.getElementById('f-name').value.trim(),
     category: document.getElementById('f-cat').value,
@@ -1291,7 +1358,8 @@ async function saveItem() {
     detail: document.getElementById('f-detail').value.trim(),
     prev_observation: document.getElementById('f-prev').value.trim(),
     areas: selectedAreas,
-    responsible_emails: document.getElementById('f-emails').value.trim()
+    area_emails,
+    responsible_emails
   };
   if (!body.name) throw new Error('El nombre es obligatorio');
   if (!body.category) throw new Error('Selecciona una categoría');
@@ -1320,12 +1388,25 @@ async function saveCat() {
 async function saveSub() {
   const catId = document.getElementById('f-cat').value;
   const num = document.getElementById('f-number').value;
+
+  // Flush visible inputs into persistent store, then save ALL area emails (active + inactive)
+  selectedAreas.forEach(aid => {
+    const inp = document.getElementById('ae-' + aid);
+    if (inp) currentAreaEmails[aid] = inp.value.trim();
+  });
+  const area_emails = { ...currentAreaEmails };
+  // responsible_emails = union of SELECTED areas only
+  const responsible_emails = [...new Set(
+    selectedAreas.flatMap(aid => (currentAreaEmails[aid] || '').split(',').map(e => e.trim()).filter(Boolean))
+  )].join(', ');
+
   const body = {
     name: document.getElementById('f-name').value.trim(),
     code: num,
     order: parseInt(num)||0,
     areas: selectedAreas,
-    responsible_emails: document.getElementById('f-emails').value.trim(),
+    area_emails,
+    responsible_emails,
     status: document.getElementById('f-status').value
   };
   if (!body.name) throw new Error('El nombre es obligatorio');

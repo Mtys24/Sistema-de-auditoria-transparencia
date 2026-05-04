@@ -1,11 +1,49 @@
 services:
+  mongo:
+    image: mongo:latest
+    container_name: auditoria-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=admin123
+    restart: unless-stopped
+
   auditoria:
     build: .
     container_name: auditoria-dashboard
     ports:
-      - "3000:3000"
+      - "3400:3000"
     volumes:
       - ./db:/app/data
     environment:
       - DB_PATH=/app/data/auditoria.db
+      - MONGO_URI=mongodb://root:admin123@mongo:27017/Sw_auditoria?authSource=admin
+      - PG_HOST=postgres
+      - PG_PORT=5432
+      - PG_DB=Sw_auditoria
+      - PG_USER=postgres
+      - PG_PASSWORD=123456
+    depends_on:
+      - mongo
+      - postgres
     restart: unless-stopped
+
+  postgres:
+    image: postgres:16
+    container_name: auditoria-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=Sw_auditoria
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=123456
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  mongo_data:
+  postgres_data:

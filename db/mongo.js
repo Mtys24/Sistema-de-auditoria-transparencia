@@ -26,7 +26,9 @@ const Subcategory = mongoose.model('Subcategory', new Schema({
   status: { type: String, enum: ['Completo', 'Incompleto', 'Faltante', 'No disponible'], default: 'Incompleto' },
   order: { type: Number, default: 0 },
   areas: [{ type: Schema.Types.ObjectId, ref: 'Area' }],
-  responsible_emails: { type: String, default: '' }
+  area_emails: { type: Schema.Types.Mixed, default: {} },
+  responsible_emails: { type: String, default: '' },
+  cc_emails: { type: String, default: '' }
 }));
 
 const Item = mongoose.model('Item', new Schema({
@@ -39,7 +41,9 @@ const Item = mongoose.model('Item', new Schema({
   prev_observation: { type: String, default: '' },
   deadline: { type: String, default: '' },
   areas: [{ type: Schema.Types.ObjectId, ref: 'Area' }],
-  responsible_emails: { type: String, default: '' }
+  area_emails: { type: Schema.Types.Mixed, default: {} },
+  responsible_emails: { type: String, default: '' },
+  cc_emails: { type: String, default: '' }
 }, { timestamps: true }));
 const Config = mongoose.model('Config', new Schema({
   key: { type: String, unique: true, required: true },

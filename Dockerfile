@@ -7,12 +7,14 @@ RUN apk add --no-cache python3 make g++
 
 # Copy package files first for layer caching
 COPY package.json package-lock.json ./
-RUN npm ci --only=production
+RUN npm install --omit=dev
 
 # Copy app source
 COPY server.js ./
 COPY db/ ./db/
 COPY public/ ./public/
+COPY routes/ ./routes/
+COPY middleware/ ./middleware/
 
 # Create volume mount point for persistent SQLite data
 RUN mkdir -p /app/data

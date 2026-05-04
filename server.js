@@ -16,6 +16,7 @@ app.use('/api/categories', require('./routes/categories'));
 app.use('/api/areas', require('./routes/areas'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/config', require('./routes/config'));
+app.use('/api/notify', require('./routes/notify'));
 
 async function start() {
   try {
